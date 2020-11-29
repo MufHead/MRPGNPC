@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="MRPGNPC">
+    <output-path>$PROJECT_DIR$/out/artifacts/MRPGNPC</output-path>
+    <root id="archive" name="MRPGNPC.jar">
+      <element id="module-output" name="MRPGNPC" />
+    </root>
+  </artifact>
+</component>
