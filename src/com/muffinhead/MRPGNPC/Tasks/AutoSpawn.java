@@ -69,7 +69,7 @@ public class AutoSpawn extends Task {
                                 }
                                 break;
                             }
-                            case "PlayersNearby": {
+                            case "playersNearby": {
                                 boolean nearby = false;
                                 for (Player player : position.getLevel().getPlayers().values()) {
                                     if (player.distance(position) <= Double.parseDouble(function)) {
@@ -79,7 +79,7 @@ public class AutoSpawn extends Task {
                                 canSpawn = nearby;
                                 break;
                             }
-                            case "onOneNearby": {
+                            case "noOneNearby": {
                                 boolean nearby = false;
                                 for (Player player : position.getLevel().getPlayers().values()) {
                                     if (player.distance(position) <= Double.parseDouble(function)) {
