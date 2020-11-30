@@ -14,6 +14,7 @@ public class MobNPC extends NPC{
         checkTargetCanBeChoose();
         checkPlayerIsAttractive();
         updateDisplayName();
+        bedamagedcdCheck();
         if (target == null) {
             this.target = this.getTarget();
         }

@@ -3,7 +3,7 @@ author: MRPGNPC
 main: com.muffinhead.MRPGNPC.MRPGNPC
 load: POSTWORLD
 api: "1.0.0"
-version: "1.0.0"
+version: "1.0.1"
 commands:
   mrn:
     description: "mrn"

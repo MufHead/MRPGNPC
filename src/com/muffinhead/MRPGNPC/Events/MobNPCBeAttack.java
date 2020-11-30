@@ -23,7 +23,9 @@ public class MobNPCBeAttack implements Listener {
         Entity entity = event.getEntity();
         if (entity instanceof MobNPC) {
             //particle
-            ((MobNPC) entity).beattackparticle();
+            if (!event.isCancelled()){
+                ((MobNPC) entity).beattackparticle();
+            }
             //particle
             //attackcooldown 0
             //attackcooldown 0

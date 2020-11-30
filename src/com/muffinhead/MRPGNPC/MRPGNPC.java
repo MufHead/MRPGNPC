@@ -35,7 +35,7 @@ import static cn.nukkit.utils.Utils.readFile;
 
 public class MRPGNPC extends PluginBase {
     public static MRPGNPC mrpgnpc;
-    public static Map<String, CompoundTag> tagMap = new HashMap<>();
+    //public static Map<String, CompoundTag> tagMap = new HashMap<>();
     public static ConcurrentHashMap<String, Config> mobconfigs = new ConcurrentHashMap<String, Config>();
     public static ConcurrentHashMap<String, Config> pointconfigs = new ConcurrentHashMap<String, Config>();
     public static ConcurrentHashMap<String, Skin> skins = new ConcurrentHashMap<>();
@@ -171,6 +171,7 @@ public class MRPGNPC extends PluginBase {
                 case "reload":{
                     checkMobs();
                     checkPoints();
+                    sender.sendMessage("§aThe mob&point files was reload successfully!");
                     return true;
                 }
 
@@ -252,14 +253,48 @@ public class MRPGNPC extends PluginBase {
                 return null;
             }else{
                 Config config = mobconfigs.get(args[2]);
-                MobNPC npc = new MobNPC(((Player) sender).getChunk(),NPC.getDefaultNBT(((Player) sender).getTargetBlock(3)));
+                if (config!=null) {
+                    MobNPC npc = new MobNPC(((Player) sender).getChunk(), NPC.getDefaultNBT(((Player) sender).getTargetBlock(3)));
+                    npc.setDisplayName(config.getString("DisplayName"));
+                    npc.setMaxHealth(config.getInt("MaxHealth"));
+                    npc.setHealth(npc.getMaxHealth());
+                    npc.setScale((float) config.getDouble("Size"));
+                    npc.setSpeed(config.getDouble("MovementSpeed"));
+                    npc.setDamage(config.getDouble("Damage"));
+                    npc.setKnockback(config.getDouble("Knockback"));
+                    npc.setDefenseformula(config.getString("DefenseFormula"));
+                    npc.setAttackdelay(config.getInt("AttackDelay"));
+                    npc.setDamagedelay(config.getInt("DamageDelay"));
+                    npc.setBedamageddelay(config.getInt("BedamagedDelay"));
+                    npc.setAttackrange(config.getDouble("AttackRange"));
+                    npc.setHaterange(config.getDouble("HateRange"));
+                    npc.setNohatesheal(config.getString("NoHatesHeal"));
+                    npc.setHitrange(config.getDouble("HitRange"));
+                    npc.setCanbeknockback(config.getBoolean("CanBeKnockback"));
+                    npc.setDeathcommands(config.getList("DeathCommands"));
+                    npc.setCamp(config.getString("Camp"));
+                    npc.getInventory().setItemInHand(getItemByString(config.getString("ItemInHand")));
+                    npc.setBeDamagedblockparticle(config.getString("BeDamagedBlockParticleID"));
+                    npc.setActiveattackcreature(config.getList("ActiveAttackCreature"));
+                    npc.setDrops(config.getList("Drops"));
+                    Skin skin = skins.get(config.getString("Skin"));
+                    npc.setSkin(skin);
+                    return npc;
+                }
+            }
+        }else{
+            Config config = mobconfigs.get(args[2]);
+            if (config!=null) {
+                Position position = new Position(Double.parseDouble(args[3]), Double.parseDouble(args[4]), Double.parseDouble(args[5]), getServer().getLevelByName(args[6]));
+                MobNPC npc = new MobNPC(position.getChunk(), NPC.getDefaultNBT(position));
                 npc.setDisplayName(config.getString("DisplayName"));
                 npc.setMaxHealth(config.getInt("MaxHealth"));
+                npc.setHealth(npc.getMaxHealth());
                 npc.setScale((float) config.getDouble("Size"));
                 npc.setSpeed(config.getDouble("MovementSpeed"));
                 npc.setDamage(config.getDouble("Damage"));
                 npc.setKnockback(config.getDouble("Knockback"));
-                npc.setDefenseformula(config.getString("DefensesFormula"));
+                npc.setDefenseformula(config.getString("DefenseFormula"));
                 npc.setAttackdelay(config.getInt("AttackDelay"));
                 npc.setDamagedelay(config.getInt("DamageDelay"));
                 npc.setBedamageddelay(config.getInt("BedamagedDelay"));
@@ -274,55 +309,30 @@ public class MRPGNPC extends PluginBase {
                 npc.setBeDamagedblockparticle(config.getString("BeDamagedBlockParticleID"));
                 npc.setActiveattackcreature(config.getList("ActiveAttackCreature"));
                 npc.setDrops(config.getList("Drops"));
-                npc.setGeometryName("geometry."+config.getString("Skin"));
-                npc.setSkinname(config.getString("Skin"));
-                npc.setSkin(skins.get(config.getString("Skin")));
+                Skin skin = skins.get(config.getString("Skin"));
+                npc.setSkin(skin);
                 return npc;
             }
-        }else{
-            Config config = mobconfigs.get(args[2]);
-            Position position = new Position(Double.parseDouble(args[3]),Double.parseDouble(args[4]),Double.parseDouble(args[5]),getServer().getLevelByName(args[6]));
-            MobNPC npc = new MobNPC(position.getChunk(),NPC.getDefaultNBT(position));
-            npc.setDisplayName(config.getString("DisplayName"));
-            npc.setMaxHealth(config.getInt("MaxHealth"));
-            npc.setScale((float) config.getDouble("Size"));
-            npc.setSpeed(config.getDouble("MovementSpeed"));
-            npc.setDamage(config.getDouble("Damage"));
-            npc.setKnockback(config.getDouble("Knockback"));
-            npc.setDefenseformula(config.getString("DefensesFormula"));
-            npc.setAttackdelay(config.getInt("AttackDelay"));
-            npc.setDamagedelay(config.getInt("DamageDelay"));
-            npc.setBedamageddelay(config.getInt("BedamagedDelay"));
-            npc.setAttackrange(config.getDouble("AttackRange"));
-            npc.setHaterange(config.getDouble("HateRange"));
-            npc.setNohatesheal(config.getString("NoHatesHeal"));
-            npc.setHitrange(config.getDouble("HitRange"));
-            npc.setCanbeknockback(config.getBoolean("CanBeKnockback"));
-            npc.setDeathcommands(config.getList("DeathCommands"));
-            npc.setCamp(config.getString("Camp"));
-            npc.getInventory().setItemInHand(getItemByString(config.getString("ItemInHand")));
-            npc.setBeDamagedblockparticle(config.getString("BeDamagedBlockParticleID"));
-            npc.setActiveattackcreature(config.getList("ActiveAttackCreature"));
-            npc.setDrops(config.getList("Drops"));
-            npc.setSkin(skins.get(config.getString("Skin")));
-            return npc;
         }
+        return null;
     }
+
+
     public Item getItemByString(String s){
         Item item = Item.get(Integer.parseInt(s.split(":")[0]));
         item.setDamage(Integer.parseInt(s.split(":")[1]));
         return item;
     }
     public void checkSkins() throws IOException {
-        Skin skin = new Skin();
         Path skinPath = getDataFolder().toPath().resolve("Skins");
         File skinsFolder = new File(skinPath.toString());
-        if (!skinsFolder.exists()){
+        if (!skinsFolder.exists()) {
             skinsFolder.mkdirs();
         }
-        for (File skinFolder: Objects.requireNonNull(skinsFolder.listFiles())){
-            CompoundTag tag = getSkinTag(skinFolder.getName());
-            tagMap.put(skinFolder.getName(), tag);
+        for (File skinFolder : Objects.requireNonNull(skinsFolder.listFiles())) {
+            Skin skin = new Skin();
+            /*CompoundTag tag = getSkinTag(skinFolder.getName());
+              tagMap.put(skinFolder.getName(), tag);*/
             Path skinpath = skinFolder.toPath().resolve("skin.png");
             Path geometrypath = skinFolder.toPath().resolve("geometry.json");
             BufferedImage skindata = null;
@@ -333,25 +343,18 @@ public class MRPGNPC extends PluginBase {
                 if (skindata != null) {
                     skin.setSkinData(skindata);
                     skin.setGeometryData(skingeometry);
-                    skin.setGeometryName("geometry."+skinFolder.getName());
+                    skin.setGeometryName("geometry." + skinFolder.getName());
                     skin.setSkinId(skinFolder.getName());
                 }
-                skins.put(skinFolder.getName(),skin);
+                skins.put(skinFolder.getName(), skin);
             } catch (IOException event) {
                 System.out.println("skin not exist");
             }
         }
-        if (skinsFolder.exists()) {
-            File[] files = skinsFolder.listFiles();
-            for (File skinthings : files) {
-                try {
-                    CompoundTag tag = getSkinTag(skinthings.getName());
-                    tagMap.put(skinthings.getName(), tag);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        File[] files = skinsFolder.listFiles();
+        for (File skinthings : files) {
+            // CompoundTag tag = getSkinTag(skinthings.getName());
+            //tagMap.put(skinthings.getName(), tag);
         }
     }
     public void checkMobs(){

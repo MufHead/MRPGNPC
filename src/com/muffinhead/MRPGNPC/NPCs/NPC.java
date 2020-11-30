@@ -709,7 +709,7 @@ public class NPC extends EntityHuman {
             if (!this.hasSpawned.containsKey(player.getLoaderId())) {
                 this.hasSpawned.put(player.getLoaderId(), player);
                 if (skin == null) {
-                    this.namedTag.putCompound("Skin", MRPGNPC.tagMap.get(this.skinname));
+                  //  this.namedTag.putCompound("Skin", MRPGNPC.tagMap.get(this.skinname));
                 }
                 PlayerSkinPacket packet = new PlayerSkinPacket();
                 packet.uuid = this.uuid;
@@ -888,6 +888,17 @@ public class NPC extends EntityHuman {
             }
         }
     }
+
+    public void bedamagedcdCheck(){
+        for (Entity entity:bedamageCD.keySet()){
+            if (bedamageCD.get(entity)>0){
+                bedamageCD.put(entity,bedamageCD.get(entity)-1);
+            }else{
+                bedamageCD.remove(entity);
+            }
+        }
+    }
+
     public void dropItems(String itemiddamageamount,NPC npc){
         int id = Integer.parseInt(itemiddamageamount.split("-")[0]);
         int damage = Integer.parseInt(itemiddamageamount.split("-")[1]);
