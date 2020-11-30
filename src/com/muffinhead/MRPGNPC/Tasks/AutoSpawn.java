@@ -103,9 +103,11 @@ public class AutoSpawn extends Task {
                 //maxmob limit
                 int mobamount = 0;
                 for (Entity entity:position.getLevel().getEntities()){
-                    if (entity instanceof MobNPC){
-                        if (((MobNPC) entity).getMobFeature().equals(mobFeature)) {
-                            mobamount++;
+                    if (entity instanceof MobNPC) {
+                        if (((MobNPC) entity).getMobFeature() != null) {
+                            if (((MobNPC) entity).getMobFeature().equals(mobFeature)) {
+                                mobamount++;
+                            }
                         }
                     }
                 }

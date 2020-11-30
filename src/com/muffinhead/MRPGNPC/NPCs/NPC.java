@@ -171,9 +171,15 @@ public class NPC extends EntityHuman {
         if (speed < 0) {
             speed = 0;
         }
-        Double x = this.x - this.spawnPosition.x;
-        Double y = this.y - this.spawnPosition.y;
-        Double z = this.z - this.spawnPosition.z;
+        Double x = 0d;
+        Double y = 0d;
+        Double z = 0d;
+
+        if (this.spawnPosition!=null) {
+            x = this.x - this.spawnPosition.x;
+            y = this.y - this.spawnPosition.y;
+            z = this.z - this.spawnPosition.z;
+        }
         if (target != null) {
             x = this.x - target.x;
             y = this.y - target.y;
@@ -226,20 +232,24 @@ public class NPC extends EntityHuman {
 
     //displaynameupdate
     public void updateDisplayName() {
-        String name = this.displayName
-                .replace("{Maxhealth}", this.getMaxHealth() + "")
-                .replace("{Health}", this.getHealth() + "")
-                .replace("{Damage}", this.damage + "");
-        this.setNameTag(name);
+        if (this.displayName!=null) {
+            String name = this.displayName
+                    .replace("{Maxhealth}", this.getMaxHealth() + "")
+                    .replace("{Health}", this.getHealth() + "")
+                    .replace("{Damage}", this.damage + "");
+            this.setNameTag(name);
+        }
     }
 
     //
     public void checkPlayerIsAttractive() {
-        for (Entity entity : cantAttractiveTarget.keySet()) {
-            if (cantAttractiveTarget.get(entity) > 0) {
-                cantAttractiveTarget.put(entity, cantAttractiveTarget.get(entity) - 1);
-            } else {
-                cantAttractiveTarget.remove(entity);
+        if (cantAttractiveTarget!=null) {
+            for (Entity entity : cantAttractiveTarget.keySet()) {
+                if (cantAttractiveTarget.get(entity) > 0) {
+                    cantAttractiveTarget.put(entity, cantAttractiveTarget.get(entity) - 1);
+                } else {
+                    cantAttractiveTarget.remove(entity);
+                }
             }
         }
     }
@@ -371,99 +381,101 @@ public class NPC extends EntityHuman {
         List<Entity> entities = new ArrayList<>();
         for (Entity entity : getLevel().getEntities()) {
             if (entity.distance(this) <= this.haterange) {
-                for (String targettype : activeattackcreature) {
+                if (activeattackcreature != null) {
+                    for (String targettype : activeattackcreature) {
 
 //Multicharacteristic EntityChoose
-                    if (targettype.contains("|")) {
-                        boolean canBeChoose = true;
-                        String[] types = targettype.split("\\|");
-                        for (String type : types) {
-                            String t = type;
-                            String function = "";
-                            if (type.contains(":")) {
-                                t = type.split(":")[0];
-                                function = type.split(":")[1];
+                        if (targettype.contains("|")) {
+                            boolean canBeChoose = true;
+                            String[] types = targettype.split("\\|");
+                            for (String type : types) {
+                                String t = type;
+                                String function = "";
+                                if (type.contains(":")) {
+                                    t = type.split(":")[0];
+                                    function = type.split(":")[1];
+                                }
+                                switch (t) {
+                                    case "Player": {
+                                        if (!(entity instanceof Player)) {
+                                            canBeChoose = false;
+                                        }
+                                        break;
+                                    }
+                                    case "Mob": {
+                                        if (!(entity instanceof MobNPC)) {
+                                            canBeChoose = false;
+                                        }
+                                        break;
+                                    }
+                                    case "Camp": {
+                                        if (entity instanceof MobNPC) {
+                                            if (!((MobNPC) entity).getCamp().equals(function)) {
+                                                canBeChoose = false;
+                                            }
+                                        } else {
+                                            canBeChoose = false;
+                                        }
+                                        break;
+                                    }
+                                    case "Point": {
+                                        if (entity instanceof MobNPC) {
+                                            if (!((MobNPC) entity).getMobFeature().split(":")[((MobNPC) entity).getMobFeature().split(":").length - 1].equals(function)) {
+                                                canBeChoose = false;
+                                            }
+                                        } else {
+                                            canBeChoose = false;
+                                        }
+                                        break;
+                                    }
+                                }
                             }
-                            switch (t) {
+                            if (canBeChoose) {
+                                if (!entities.contains(entity)) {
+                                    entities.add(entity);
+                                }
+                            }
+//Single characteristic EntityChoose
+                        } else {
+                            String type = targettype;
+                            String function = "";
+                            if (targettype.contains(":")) {
+                                type = targettype.split(":")[0];
+                                function = targettype.split(":")[1];
+                            }
+                            switch (type) {
                                 case "Player": {
-                                    if (!(entity instanceof Player)) {
-                                        canBeChoose = false;
+                                    if (entity instanceof Player) {
+                                        if (!entities.contains(entity)) {
+                                            entities.add(entity);
+                                        }
                                     }
                                     break;
                                 }
                                 case "Mob": {
-                                    if (!(entity instanceof MobNPC)) {
-                                        canBeChoose = false;
+                                    if (entity instanceof MobNPC) {
+                                        if (!entities.contains(entity)) {
+                                            entities.add(entity);
+                                        }
                                     }
                                     break;
                                 }
                                 case "Camp": {
                                     if (entity instanceof MobNPC) {
-                                        if (!((MobNPC) entity).getCamp().equals(function)) {
-                                            canBeChoose = false;
+                                        if (((MobNPC) entity).getCamp().equals(function)) {
+                                            entities.add(entity);
                                         }
-                                    }else{
-                                        canBeChoose = false;
                                     }
                                     break;
                                 }
                                 case "Point": {
                                     if (entity instanceof MobNPC) {
-                                        if (!((MobNPC) entity).getMobFeature().split(":")[((MobNPC) entity).getMobFeature().split(":").length-1].equals(function)) {
-                                            canBeChoose = false;
+                                        if (((MobNPC) entity).getMobFeature().split(":")[((MobNPC) entity).getMobFeature().split(":").length - 1].equals(function)) {
+                                            entities.add(entity);
                                         }
-                                    }else{
-                                        canBeChoose = false;
                                     }
                                     break;
                                 }
-                            }
-                        }
-                        if (canBeChoose) {
-                            if (!entities.contains(entity)) {
-                                entities.add(entity);
-                            }
-                        }
-//Single characteristic EntityChoose
-                    } else {
-                        String type = targettype;
-                        String function = "";
-                        if (targettype.contains(":")) {
-                            type = targettype.split(":")[0];
-                            function = targettype.split(":")[1];
-                        }
-                        switch (type) {
-                            case "Player": {
-                                if (entity instanceof Player) {
-                                    if (!entities.contains(entity)) {
-                                        entities.add(entity);
-                                    }
-                                }
-                                break;
-                            }
-                            case "Mob": {
-                                if (entity instanceof MobNPC) {
-                                    if (!entities.contains(entity)) {
-                                        entities.add(entity);
-                                    }
-                                }
-                                break;
-                            }
-                            case "Camp": {
-                                if (entity instanceof MobNPC) {
-                                    if (((MobNPC) entity).getCamp().equals(function)) {
-                                        entities.add(entity);
-                                    }
-                                }
-                                break;
-                            }
-                            case "Point": {
-                                if (entity instanceof MobNPC) {
-                                    if (((MobNPC) entity).getMobFeature().split(":")[((MobNPC) entity).getMobFeature().split(":").length-1].equals(function)) {
-                                        entities.add(entity);
-                                    }
-                                }
-                                break;
                             }
                         }
                     }
@@ -473,63 +485,66 @@ public class NPC extends EntityHuman {
         for (Entity entity : entities) {
             hatePool.put(entity, 0.0f);
         }
-        ConcurrentHashMap<Entity, Float> map = new ConcurrentHashMap<Entity, Float>(hatePool);
-        if (!map.isEmpty()) {
-            for (Map.Entry<Entity, Float> s : map.entrySet()) {
-                ///////////////////
-                if (!map.isEmpty()) {
-                    if (s.getKey() == null) {
-                        map.remove(s.getKey());
+        ConcurrentHashMap<Entity, Float> map = new ConcurrentHashMap<>();
+        if (hatePool!=null) {
+            map = new ConcurrentHashMap<Entity, Float>(hatePool);
+        }
+            if (!map.isEmpty()) {
+                for (Map.Entry<Entity, Float> s : map.entrySet()) {
+                    ///////////////////
+                    if (!map.isEmpty()) {
+                        if (s.getKey() == null) {
+                            map.remove(s.getKey());
+                        }
                     }
-                }
-                if (cantAttractiveTarget.containsKey(s.getKey())) {
-                    if (map.containsKey(s.getKey())) {
-                        map.remove(s.getKey());
+                    if (cantAttractiveTarget.containsKey(s.getKey())) {
+                        if (map.containsKey(s.getKey())) {
+                            map.remove(s.getKey());
+                        }
                     }
-                }
-                if (s.getKey() != null) {
+                    if (s.getKey() != null) {
+                        if (!map.isEmpty()) {
+                            if (map.containsKey(s.getKey())) {
+                                if (s.getKey() instanceof Player) {
+                                    if (!((Player) s.getKey()).isOnline()) {
+                                        map.remove(s.getKey());
+                                    }
+                                }
+                            }
+                        }
+                    }
                     if (!map.isEmpty()) {
                         if (map.containsKey(s.getKey())) {
-                            if (s.getKey() instanceof Player) {
-                                if (!((Player) s.getKey()).isOnline()) {
+                            if (s.getKey().level != this.level) {
+                                map.remove(s.getKey());
+                            }
+                        }
+                    }
+                    if (!map.isEmpty()) {
+                        if (map.containsKey(s.getKey())) {
+                            if (s.getKey().distance(this) >= this.haterange) {
+                                map.remove(s.getKey());
+                            }
+                        }
+                    }
+                    if (!map.isEmpty()) {
+                        if (map.containsKey(s.getKey())) {
+                            if (!s.getKey().isAlive()) {
+                                map.remove(s.getKey());
+                            }
+                        }
+                    }
+                    if (!map.isEmpty()) {
+                        if (map.containsKey(s.getKey())) {
+                            for (Effect effect : s.getKey().getEffects().values()) {
+                                if (effect.getId() == 14) {
                                     map.remove(s.getKey());
                                 }
                             }
                         }
                     }
                 }
-                if (!map.isEmpty()) {
-                    if (map.containsKey(s.getKey())) {
-                        if (s.getKey().level != this.level) {
-                            map.remove(s.getKey());
-                        }
-                    }
-                }
-                if (!map.isEmpty()) {
-                    if (map.containsKey(s.getKey())) {
-                        if (s.getKey().distance(this) >= this.haterange) {
-                            map.remove(s.getKey());
-                        }
-                    }
-                }
-                if (!map.isEmpty()) {
-                    if (map.containsKey(s.getKey())) {
-                        if (!s.getKey().isAlive()) {
-                            map.remove(s.getKey());
-                        }
-                    }
-                }
-                if (!map.isEmpty()) {
-                    if (map.containsKey(s.getKey())) {
-                        for (Effect effect : s.getKey().getEffects().values()) {
-                            if (effect.getId() == 14) {
-                                map.remove(s.getKey());
-                            }
-                        }
-                    }
-                }
             }
-        }
         if (!map.isEmpty()) {
             Entity entity = null;
 
@@ -684,6 +699,10 @@ public class NPC extends EntityHuman {
         this.skinname = skinname;
     }
 
+    public String getSkinname() {
+        return skinname;
+    }
+
     public void setActiveattackcreature(List<String> activeattackcreature) {
         this.activeattackcreature = activeattackcreature;
     }
@@ -700,17 +719,23 @@ public class NPC extends EntityHuman {
         return mobFeature;
     }
 
+
     public void spawnTo(Player player) {
         if (player.isLoaderActive()) {
             if (Long.valueOf(this.getId()) == null) {
                 this.id = Entity.entityCount++;
             }
-            this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getName(), this.skin, new Player[]{player});
+            if (skin == null) {
+                this.setSkin(MRPGNPC.skins.get(getSkinname()));
+            }
+            try {
+                this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getName(), this.getSkin(), new Player[]{player});
+            } catch (Exception ignored) {
+
+            }
             if (!this.hasSpawned.containsKey(player.getLoaderId())) {
                 this.hasSpawned.put(player.getLoaderId(), player);
-                if (skin == null) {
-                  //  this.namedTag.putCompound("Skin", MRPGNPC.tagMap.get(this.skinname));
-                }
+
                 PlayerSkinPacket packet = new PlayerSkinPacket();
                 packet.uuid = this.uuid;
                 packet.newSkinName = "";
@@ -890,11 +915,13 @@ public class NPC extends EntityHuman {
     }
 
     public void bedamagedcdCheck(){
-        for (Entity entity:bedamageCD.keySet()){
-            if (bedamageCD.get(entity)>0){
-                bedamageCD.put(entity,bedamageCD.get(entity)-1);
-            }else{
-                bedamageCD.remove(entity);
+        if (bedamageCD!=null) {
+            for (Entity entity : bedamageCD.keySet()) {
+                if (bedamageCD.get(entity) > 0) {
+                    bedamageCD.put(entity, bedamageCD.get(entity) - 1);
+                } else {
+                    bedamageCD.remove(entity);
+                }
             }
         }
     }

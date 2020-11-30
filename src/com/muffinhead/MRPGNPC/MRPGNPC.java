@@ -41,6 +41,11 @@ public class MRPGNPC extends PluginBase {
     public static ConcurrentHashMap<String, Skin> skins = new ConcurrentHashMap<>();
 
     @Override
+    public void onLoad() {
+        Entity.registerEntity("MobNPC",MobNPC.class);
+    }
+
+    @Override
     public void onEnable() {
         getServer().getLogger().info("MRPGNPC is enable!The author is MuffinHead.");
         getServer().getPluginManager().registerEvents(new MobNPCBeAttack(),this);
@@ -277,6 +282,7 @@ public class MRPGNPC extends PluginBase {
                     npc.setBeDamagedblockparticle(config.getString("BeDamagedBlockParticleID"));
                     npc.setActiveattackcreature(config.getList("ActiveAttackCreature"));
                     npc.setDrops(config.getList("Drops"));
+                    npc.setSkinname(config.getString("Skin"));
                     Skin skin = skins.get(config.getString("Skin"));
                     npc.setSkin(skin);
                     return npc;
@@ -309,6 +315,7 @@ public class MRPGNPC extends PluginBase {
                 npc.setBeDamagedblockparticle(config.getString("BeDamagedBlockParticleID"));
                 npc.setActiveattackcreature(config.getList("ActiveAttackCreature"));
                 npc.setDrops(config.getList("Drops"));
+                npc.setSkinname(config.getString("Skin"));
                 Skin skin = skins.get(config.getString("Skin"));
                 npc.setSkin(skin);
                 return npc;
@@ -346,6 +353,19 @@ public class MRPGNPC extends PluginBase {
                     skin.setGeometryName("geometry." + skinFolder.getName());
                     skin.setSkinId(skinFolder.getName());
                 }
+                Path capePath = skinFolder.toPath().resolve("cape.png");
+
+                if (capePath.toFile().exists()) {
+                    try {
+                        BufferedImage capeData;
+                        capeData = ImageIO.read(capePath.toFile());
+                        skin.setCapeData(capeData);
+                        skin.setCapeId(skinFolder.getPath());
+                    } catch (IOException e) {
+                        System.out.println("Cape" + skinFolder.getName() + "can't use");
+                    }
+                }
+                skin.setTrusted(true);
                 skins.put(skinFolder.getName(), skin);
             } catch (IOException event) {
                 System.out.println("skin not exist");
