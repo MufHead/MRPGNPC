@@ -38,6 +38,7 @@ public class MRPGNPC extends PluginBase {
     //public static Map<String, CompoundTag> tagMap = new HashMap<>();
     public static ConcurrentHashMap<String, Config> mobconfigs = new ConcurrentHashMap<String, Config>();
     public static ConcurrentHashMap<String, Config> pointconfigs = new ConcurrentHashMap<String, Config>();
+    public static ConcurrentHashMap<String, Config> skillconfigs = new ConcurrentHashMap<String, Config>();
     public static ConcurrentHashMap<String, Skin> skins = new ConcurrentHashMap<>();
 
     @Override
@@ -54,6 +55,7 @@ public class MRPGNPC extends PluginBase {
         saveResource("GreenCross/geometry.json", "/Skins/GreenCross/geometry.json", false);
         checkMobs();
         checkPoints();
+        checkSkills();
         getServer().getScheduler().scheduleDelayedRepeatingTask(new AutoSpawn(),1,1);
         try {
             checkSkins();
@@ -176,13 +178,34 @@ public class MRPGNPC extends PluginBase {
                 case "reload":{
                     checkMobs();
                     checkPoints();
+                    checkSkills();
+                    getServer().getScheduler().scheduleDelayedRepeatingTask(new AutoSpawn(),1,1);
+                    try {
+                        checkSkins();
+                    } catch (IOException e) {
+                        getServer().getLogger().alert("Skins check wrong！！");
+                    }
                     sender.sendMessage("§aThe mob&point files was reload successfully!");
                     return true;
                 }
 
                 //put on the back burner
                 case "skill": {
-
+                    switch (args[1]){
+                        case "create":{
+                            if (args.length >= 3) {
+                                File skillFile = getSkillFolder().resolve(args[2] + ".yml").toFile();
+                                if (skillFile.exists()) {
+                                    sender.sendMessage("§cThis skillfile is already exist!");
+                                    return true;
+                                }
+                                Config config = createSkillConfig(skillFile.getPath());
+                                config.save();
+                                sender.sendMessage("§aThe new skillfile was created successfully!");
+                                return true;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -197,6 +220,10 @@ public class MRPGNPC extends PluginBase {
 
     public Path getPointFolder() {
         return getDataFolder().toPath().resolve("Points");
+    }
+
+    public Path getSkillFolder() {
+        return getDataFolder().toPath().resolve("Skills");
     }
 
     public Config createMobConfig(String configPath) {
@@ -224,6 +251,7 @@ public class MRPGNPC extends PluginBase {
         config.set("ActiveAttackCreature",new ArrayList<>());
         config.set("Drops", new ArrayList<>());
         config.set("Camp", "Example");
+        config.set("Skills",new ArrayList<>());
         return config;
     }
 
@@ -235,6 +263,12 @@ public class MRPGNPC extends PluginBase {
         config.set("PointName", "A");
         config.set("PointPosition",player.getX()+":"+player.getY()+":"+player.getZ()+":"+player.getLevel().getName());
         config.set("SpawnList", new ArrayList<>());
+        return config;
+    }
+
+    public Config createSkillConfig(String configPath) {
+        Config config = new Config(configPath, Config.YAML);
+        config.set("Skills", new ArrayList<>());
         return config;
     }
     public MobNPC spawnNPC(CommandSender sender, String mobfile, Position position,String mobFeature) {
@@ -278,6 +312,7 @@ public class MRPGNPC extends PluginBase {
                     npc.setCanbeknockback(config.getBoolean("CanBeKnockback"));
                     npc.setDeathcommands(config.getList("DeathCommands"));
                     npc.setCamp(config.getString("Camp"));
+                    npc.setSkills(config.getList("Skills"));
                     npc.getInventory().setItemInHand(getItemByString(config.getString("ItemInHand")));
                     npc.setBeDamagedblockparticle(config.getString("BeDamagedBlockParticleID"));
                     npc.setActiveattackcreature(config.getList("ActiveAttackCreature"));
@@ -311,6 +346,7 @@ public class MRPGNPC extends PluginBase {
                 npc.setCanbeknockback(config.getBoolean("CanBeKnockback"));
                 npc.setDeathcommands(config.getList("DeathCommands"));
                 npc.setCamp(config.getString("Camp"));
+                npc.setSkills(config.getList("Skills"));
                 npc.getInventory().setItemInHand(getItemByString(config.getString("ItemInHand")));
                 npc.setBeDamagedblockparticle(config.getString("BeDamagedBlockParticleID"));
                 npc.setActiveattackcreature(config.getList("ActiveAttackCreature"));
@@ -395,6 +431,16 @@ public class MRPGNPC extends PluginBase {
         for (File pointfile : Objects.requireNonNull(pointsFolder.listFiles())) {
             Config config = new Config(pointfile.getPath());
             pointconfigs.put(pointfile.getName().replace(".yml", ""), config);
+        }
+    }
+    public void checkSkills(){
+        File skillsFolder = getSkillFolder().toFile();
+        if (!skillsFolder.exists()) {
+            skillsFolder.mkdirs();
+        }
+        for (File skillfile : Objects.requireNonNull(skillsFolder.listFiles())) {
+            Config config = new Config(skillfile.getPath());
+            skillconfigs.put(skillfile.getName().replace(".yml", ""), config);
         }
     }
     public static CompoundTag getSkinTag(String skinName) throws IOException {

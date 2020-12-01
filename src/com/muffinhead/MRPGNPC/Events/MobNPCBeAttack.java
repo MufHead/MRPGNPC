@@ -34,12 +34,12 @@ public class MobNPCBeAttack implements Listener {
                 event.setAttackCooldown(0);
                 Entity damager = ((EntityDamageByEntityEvent) event).getDamager();
                 //cant attractive target can't damage npc
-                if (((MobNPC) entity).cantAttractiveTarget.containsKey(damager)) {
+                if (((MobNPC) entity).getCantAttractiveTarget().containsKey(damager)) {
                     event.setCancelled();
                 }
                 //defense
                 float damage = event.getFinalDamage();
-                damage = (float) ((MobNPC) entity).readPlayerParameters(((MobNPC) entity).getDefenseformula().replaceAll("source\\.damage", damage + ""));
+                damage = (float) ((MobNPC) entity).readEntityParameters(((MobNPC) entity).getDefenseformula().replaceAll("source\\.damage", damage + ""));
                 event.setDamage(damage);
                 //defense
                 //checkbedamagedcd
@@ -139,9 +139,9 @@ public class MobNPCBeAttack implements Listener {
 
     public void runcommand(String command, MobNPC npc) {
         String finalCommand = command;
-        List<Entity> damagers = NPC.getMaxValueList(npc.damagePool);
+        List<Entity> damagers = NPC.getMaxValueList(npc.getDamagePool());
         damagers.removeIf(entity -> !(entity instanceof Player));
-        List<Entity> haters = NPC.getMaxValueList(npc.hatePool);
+        List<Entity> haters = NPC.getMaxValueList(npc.getHatePool());
         haters.removeIf(entity -> !(entity instanceof Player));
         ConsoleCommandSender sender = Server.getInstance().getConsoleSender();
         boolean isMulti = false;
