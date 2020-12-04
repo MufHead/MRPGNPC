@@ -10,6 +10,7 @@ import cn.nukkit.event.Listener;
 import cn.nukkit.event.entity.EntityDamageByEntityEvent;
 import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.event.entity.EntityDeathEvent;
+import cn.nukkit.event.player.PlayerDeathEvent;
 import cn.nukkit.math.Vector3;
 import com.muffinhead.MRPGNPC.NPCs.MobNPC;
 import com.muffinhead.MRPGNPC.NPCs.NPC;
@@ -79,8 +80,10 @@ public class MobNPCBeAttack implements Listener {
             double frontYaw = ((damager.yaw + 90.0D) * Math.PI) / 180.0D;
             double frontX = event.getKnockBack() * 5 * Math.cos(frontYaw);
             double frontZ = event.getKnockBack() * 5 * Math.sin(frontYaw);
-            double frontY = event.getKnockBack() * 3;
+            double frontY = event.getKnockBack() * 2;
             npc.setMotion(new Vector3(frontX, frontY, frontZ));
+        }else{
+            event.setKnockBack(0);
         }
     }
 

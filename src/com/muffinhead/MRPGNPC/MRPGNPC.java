@@ -8,6 +8,7 @@ import cn.nukkit.entity.data.Skin;
 import cn.nukkit.entity.item.EntityItem;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
+import cn.nukkit.level.Location;
 import cn.nukkit.level.Position;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.nbt.tag.CompoundTag;
@@ -249,6 +250,7 @@ public class MRPGNPC extends PluginBase {
         config.set("ItemInHand", "267:0");
         config.set("BeDamagedBlockParticleID", "152:0");
         config.set("ActiveAttackCreature",new ArrayList<>());
+        config.set("UnattractiveCreature",new ArrayList<>());
         config.set("Drops", new ArrayList<>());
         config.set("Camp", "Example");
         config.set("Skills",new ArrayList<>());
@@ -261,7 +263,7 @@ public class MRPGNPC extends PluginBase {
     public Config createPointConfig(String configPath,Player player) {
         Config config = new Config(configPath, Config.YAML);
         config.set("PointName", "A");
-        config.set("PointPosition",player.getX()+":"+player.getY()+":"+player.getZ()+":"+player.getLevel().getName());
+        config.set("PointPosition",player.getX()+":"+player.getY()+":"+player.getZ()+":"+player.getLevel().getName()+":"+player.getYaw()+":"+player.getPitch());
         config.set("SpawnList", new ArrayList<>());
         return config;
     }
@@ -271,15 +273,17 @@ public class MRPGNPC extends PluginBase {
         config.set("Skills", new ArrayList<>());
         return config;
     }
-    public MobNPC spawnNPC(CommandSender sender, String mobfile, Position position,String mobFeature) {
-        String[] args = new String[7];
+    public MobNPC spawnNPC(CommandSender sender, String mobfile, Location location, String mobFeature) {
+        String[] args = new String[9];
         args[0] = "";
         args[1] = "";
         args[2] = mobfile;
-        args[3] = String.valueOf(position.x);
-        args[4] = String.valueOf(position.y);
-        args[5] = String.valueOf(position.z);
-        args[6] = position.getLevel().getName();
+        args[3] = String.valueOf(location.x);
+        args[4] = String.valueOf(location.y);
+        args[5] = String.valueOf(location.z);
+        args[6] = location.getLevel().getName();
+        args[7] = String.valueOf(location.getYaw());
+        args[8] = String.valueOf(location.getPitch());
         MobNPC npc = spawnNPC(sender,args);
         npc.setMobFeature(mobFeature);
         return npc;
@@ -309,13 +313,14 @@ public class MRPGNPC extends PluginBase {
                     npc.setHaterange(config.getDouble("HateRange"));
                     npc.setNohatesheal(config.getString("NoHatesHeal"));
                     npc.setHitrange(config.getDouble("HitRange"));
-                    npc.setCanbeknockback(config.getBoolean("CanBeKnockback"));
+                    npc.setCanbeknockback(config.getBoolean("CanBeKnockBack"));
                     npc.setDeathcommands(config.getList("DeathCommands"));
                     npc.setCamp(config.getString("Camp"));
                     npc.setSkills(config.getList("Skills"));
                     npc.getInventory().setItemInHand(getItemByString(config.getString("ItemInHand")));
                     npc.setBeDamagedblockparticle(config.getString("BeDamagedBlockParticleID"));
                     npc.setActiveattackcreature(config.getList("ActiveAttackCreature"));
+                    npc.setUnattractivecreature(config.getList("UnattractiveCreature"));
                     npc.setDrops(config.getList("Drops"));
                     npc.setSkinname(config.getString("Skin"));
                     Skin skin = skins.get(config.getString("Skin"));
@@ -326,8 +331,8 @@ public class MRPGNPC extends PluginBase {
         }else{
             Config config = mobconfigs.get(args[2]);
             if (config!=null) {
-                Position position = new Position(Double.parseDouble(args[3]), Double.parseDouble(args[4]), Double.parseDouble(args[5]), getServer().getLevelByName(args[6]));
-                MobNPC npc = new MobNPC(position.getChunk(), NPC.getDefaultNBT(position));
+                Location location = new Location(Double.parseDouble(args[3]), Double.parseDouble(args[4]), Double.parseDouble(args[5]),Double.parseDouble(args[7]),Double.parseDouble(args[8]),getServer().getLevelByName(args[6]));
+                MobNPC npc = new MobNPC(location.getChunk(), NPC.getDefaultNBT(location));
                 npc.setDisplayName(config.getString("DisplayName"));
                 npc.setMaxHealth(config.getInt("MaxHealth"));
                 npc.setHealth(npc.getMaxHealth());
@@ -343,13 +348,14 @@ public class MRPGNPC extends PluginBase {
                 npc.setHaterange(config.getDouble("HateRange"));
                 npc.setNohatesheal(config.getString("NoHatesHeal"));
                 npc.setHitrange(config.getDouble("HitRange"));
-                npc.setCanbeknockback(config.getBoolean("CanBeKnockback"));
+                npc.setCanbeknockback(config.getBoolean("CanBeKnockBack"));
                 npc.setDeathcommands(config.getList("DeathCommands"));
                 npc.setCamp(config.getString("Camp"));
                 npc.setSkills(config.getList("Skills"));
                 npc.getInventory().setItemInHand(getItemByString(config.getString("ItemInHand")));
                 npc.setBeDamagedblockparticle(config.getString("BeDamagedBlockParticleID"));
                 npc.setActiveattackcreature(config.getList("ActiveAttackCreature"));
+                npc.setUnattractivecreature(config.getList("UnattractiveCreature"));
                 npc.setDrops(config.getList("Drops"));
                 npc.setSkinname(config.getString("Skin"));
                 Skin skin = skins.get(config.getString("Skin"));
@@ -390,7 +396,6 @@ public class MRPGNPC extends PluginBase {
                     skin.setSkinId(skinFolder.getName());
                 }
                 Path capePath = skinFolder.toPath().resolve("cape.png");
-
                 if (capePath.toFile().exists()) {
                     try {
                         BufferedImage capeData;

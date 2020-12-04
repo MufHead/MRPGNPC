@@ -10,6 +10,7 @@ import cn.nukkit.entity.item.EntityItem;
 import cn.nukkit.event.entity.EntityDamageByEntityEvent;
 import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.event.entity.EntityDeathEvent;
+import cn.nukkit.event.player.PlayerDeathEvent;
 import cn.nukkit.event.player.PlayerToggleSneakEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Position;
@@ -106,6 +107,8 @@ public class NPC extends EntityHuman {
     protected ConcurrentHashMap<Entity, Float> hatePool = new ConcurrentHashMap<>();
 
     protected List<String> activeattackcreature = new ArrayList<>();
+
+    protected List<String> unattractivecreature = new ArrayList<>();
 
     protected List<String> skills = new ArrayList<>();
 
@@ -371,12 +374,13 @@ public class NPC extends EntityHuman {
         }
         return list;
     }
+
     public static Entity getMaxValue(ConcurrentHashMap<Entity, Float> map) {
         double max = -100000000000000000000000000000000000000.0F;
         Entity temp = null;
         double value = 0.0D;
         for (Entity key : map.keySet()) {
-            value =  map.get(key);
+            value = map.get(key);
             if (max < value) {
                 max = value;
                 temp = key;
@@ -413,7 +417,7 @@ public class NPC extends EntityHuman {
         for (Entity entity : getLevel().getEntities()) {
             if (entity.distance(this) <= this.haterange) {
                 if (activeattackcreature != null) {
-                    simplifyTarget(entities,activeattackcreature,entity);
+                    simplifyTarget(entities, activeattackcreature, entity);
                 }
             }
         }
@@ -424,6 +428,7 @@ public class NPC extends EntityHuman {
         if (hatePool != null) {
             map = new ConcurrentHashMap<Entity, Float>(hatePool);
         }
+        removeUnattractiveCreature(map, unattractivecreature);
         if (!map.isEmpty()) {
             for (Map.Entry<Entity, Float> s : map.entrySet()) {
                 ///////////////////
@@ -515,32 +520,33 @@ public class NPC extends EntityHuman {
         return null;
     }
 
-    public List<Entity> getTargets(String[] s){
-        return getTargets(s[0],s.length<2?this.getHaterange():Integer.parseInt(s[1]),s.length<3?this.level.getEntities().length:Integer.parseInt(s[2]),null);
+    public List<Entity> getTargets(String[] s) {
+        return getTargets(s[0], s.length < 2 ? this.getHaterange() : Integer.parseInt(s[1]), s.length < 3 ? this.level.getEntities().length : Integer.parseInt(s[2]), null);
     }
-    public List<Entity> getTargets(String type, double distance, int amountlimit,List<String> creaturetype) {
+
+    public List<Entity> getTargets(String type, double distance, int amountlimit, List<String> creaturetype) {
         List<Entity> entities = new ArrayList<>();
         for (Entity entity : getLevel().getEntities()) {
             if (entity.distance(this) <= distance) {
                 if (creaturetype != null) {
-                    simplifyTarget(entities,creaturetype,entity);
-                }else{
-                    simplifyTarget(entities,activeattackcreature,entity);
+                    simplifyTarget(entities, creaturetype, entity);
+                } else {
+                    simplifyTarget(entities, activeattackcreature, entity);
                 }
             }
         }
-        if (entities.size()>amountlimit){
+        if (entities.size() > amountlimit) {
             Collections.shuffle(entities);
-            for (int i = amountlimit;i<entities.size();i++){
+            for (int i = amountlimit; i < entities.size(); i++) {
                 entities.remove(i);
             }
         }
-        switch(type){
-            case "mostDamage":{
-                ConcurrentHashMap<Entity,Float> damagepool = new ConcurrentHashMap<>();
-                for (Entity entity:entities){
-                    if (this.damagePool.containsKey(entity)){
-                        damagepool.put(entity,this.damagePool.get(entity));
+        switch (type) {
+            case "mostDamage": {
+                ConcurrentHashMap<Entity, Float> damagepool = new ConcurrentHashMap<>();
+                for (Entity entity : entities) {
+                    if (this.damagePool.containsKey(entity)) {
+                        damagepool.put(entity, this.damagePool.get(entity));
                     }
                 }
                 Entity entity = getMaxValue(damagepool);
@@ -548,11 +554,11 @@ public class NPC extends EntityHuman {
                 entities.add(entity);
                 break;
             }
-            case "mosthate":{
-                ConcurrentHashMap<Entity,Float> hatepool = new ConcurrentHashMap<>();
-                for (Entity entity:entities){
-                    if (this.hatePool.containsKey(entity)){
-                        hatepool.put(entity,this.hatePool.get(entity));
+            case "mosthate": {
+                ConcurrentHashMap<Entity, Float> hatepool = new ConcurrentHashMap<>();
+                for (Entity entity : entities) {
+                    if (this.hatePool.containsKey(entity)) {
+                        hatepool.put(entity, this.hatePool.get(entity));
                     }
                 }
                 Entity entity = getMaxValue(hatepool);
@@ -560,9 +566,9 @@ public class NPC extends EntityHuman {
                 entities.add(entity);
                 break;
             }
-            case "nearest":{
-                ConcurrentHashMap<Entity,Float> entityDistance = new ConcurrentHashMap<>();
-                for (Entity entity:entities){
+            case "nearest": {
+                ConcurrentHashMap<Entity, Float> entityDistance = new ConcurrentHashMap<>();
+                for (Entity entity : entities) {
                     entityDistance.put(entity, (float) entity.distance(this));
                 }
                 Entity entity = getMinValue(entityDistance);
@@ -570,9 +576,9 @@ public class NPC extends EntityHuman {
                 entities.add(entity);
                 break;
             }
-            case "farest":{
-                ConcurrentHashMap<Entity,Float> entityDistance = new ConcurrentHashMap<>();
-                for (Entity entity:entities){
+            case "farest": {
+                ConcurrentHashMap<Entity, Float> entityDistance = new ConcurrentHashMap<>();
+                for (Entity entity : entities) {
                     entityDistance.put(entity, (float) entity.distance(this));
                 }
                 Entity entity = getMaxValue(entityDistance);
@@ -580,8 +586,119 @@ public class NPC extends EntityHuman {
                 entities.add(entity);
                 break;
             }
+            case "lastDamager":{
+                if (this.getLastDamageCause() != null) {
+                    if (this.getLastDamageCause().getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
+                        if (((EntityDamageByEntityEvent) this.getLastDamageCause()).getDamager() instanceof Player) {
+                            entities = new ArrayList<>();
+                            entities.add(((EntityDamageByEntityEvent) this.getLastDamageCause()).getDamager());
+                        }
+                    }
+                }
+                break;
+            }
+            case "all":{
+                break;
+            }
         }
-        return  entities;
+        return entities;
+    }
+
+    public void removeUnattractiveCreature(ConcurrentHashMap<Entity, Float> map, List<String> unattractiveCreature) {
+        for (Entity entity : map.keySet()) {
+            if (unattractiveCreature != null) {
+                for (String targettype : unattractiveCreature) {
+//Multicharacteristic EntityChoose
+                    if (targettype.contains("|")) {
+                        boolean canBeChoose = true;
+                        String[] types = targettype.split("\\|");
+                        for (String type : types) {
+                            String t = type;
+                            String function = "";
+                            if (type.contains(":")) {
+                                t = type.split(":")[0];
+                                function = type.split(":")[1];
+                            }
+                            switch (t) {
+                                case "Player": {
+                                    if (!(entity instanceof Player)) {
+                                        canBeChoose = false;
+                                    }
+                                    break;
+                                }
+                                case "Mob": {
+                                    if (!(entity instanceof MobNPC)) {
+                                        canBeChoose = false;
+                                    }
+                                    break;
+                                }
+                                case "Camp": {
+                                    if (entity instanceof MobNPC) {
+                                        if (!((MobNPC) entity).getCamp().equals(function)) {
+                                            canBeChoose = false;
+                                        }
+                                    } else {
+                                        canBeChoose = false;
+                                    }
+                                    break;
+                                }
+                                case "Point": {
+                                    if (entity instanceof MobNPC) {
+                                        if (!((MobNPC) entity).getMobFeature().split(":")[((MobNPC) entity).getMobFeature().split(":").length - 1].equals(function)) {
+                                            canBeChoose = false;
+                                        }
+                                    } else {
+                                        canBeChoose = false;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        if (canBeChoose) {
+                            map.remove(entity);
+                        }
+//Single characteristic EntityChoose
+                    } else {
+                        String type = targettype;
+                        String function = "";
+                        if (targettype.contains(":")) {
+                            type = targettype.split(":")[0];
+                            function = targettype.split(":")[1];
+                        }
+                        switch (type) {
+                            case "Player": {
+                                if (entity instanceof Player) {
+                                    map.remove(entity);
+                                }
+                                break;
+                            }
+                            case "Mob": {
+                                if (entity instanceof MobNPC) {
+                                    map.remove(entity);
+                                }
+                                break;
+                            }
+                            case "Camp": {
+                                if (entity instanceof MobNPC) {
+                                    if (((MobNPC) entity).getCamp().equals(function)) {
+                                        map.remove(entity);
+                                    }
+                                }
+                                break;
+                            }
+                            case "Point": {
+                                if (entity instanceof MobNPC) {
+                                    if (((MobNPC) entity).getMobFeature().split(":")[((MobNPC) entity).getMobFeature().split(":").length - 1].equals(function)) {
+                                        map.remove(entity);
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void simplifyTarget(List<Entity> entities, List<String> creaturetype, Entity entity) {
@@ -816,6 +933,14 @@ public class NPC extends EntityHuman {
         this.activeattackcreature = activeattackcreature;
     }
 
+    public List<String> getUnattractivecreature() {
+        return unattractivecreature;
+    }
+
+    public void setUnattractivecreature(List<String> unattractivecreature) {
+        this.unattractivecreature = unattractivecreature;
+    }
+
     public void setHitrange(double hitrange) {
         this.hitrange = hitrange;
     }
@@ -939,7 +1064,7 @@ public class NPC extends EntityHuman {
                                 for (Entity entity : getLevel().getEntities()) {
                                     if (entity != npc) {
                                         if (hatePool.containsKey(entity)) {
-                                            if (entity.distance(position) <= npc.hitrange) {
+                                            if (entity.distanceSquared(position) <= npc.hitrange) {
                                                 if (finalCanAttack) {
                                                     if (npc.isAlive()) {
                                                         EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(npc, entity, EntityDamageEvent.DamageCause.ENTITY_ATTACK, damage);
@@ -1084,9 +1209,6 @@ public class NPC extends EntityHuman {
             s = s.replaceAll("target\\.name", target.getName());
         }
         if (target != null) {
-            s = s.replaceAll("@当前目标", target.getName());
-        }
-        if (target != null) {
             s = s.replaceAll("target\\.health", target.getHealth() + "");
         }
         if (target != null) {
@@ -1103,6 +1225,13 @@ public class NPC extends EntityHuman {
             s = s.replaceAll("target\\.z", target.z + "");
         } else {
             s = s.replaceAll("target\\.z", this.z + "");
+        }
+        if (this.getLastDamageCause() != null) {
+            if (this.getLastDamageCause().getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
+                if (((EntityDamageByEntityEvent) this.getLastDamageCause()).getDamager() instanceof Player) {
+                    s = s.replaceAll("damager\\.name", ((EntityDamageByEntityEvent) this.getLastDamageCause()).getDamager().getName());
+                }
+            }
         }
 
         s = s

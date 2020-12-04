@@ -2,6 +2,7 @@ package com.muffinhead.MRPGNPC.Tasks;
 
 import cn.nukkit.Player;
 import cn.nukkit.entity.Entity;
+import cn.nukkit.level.Location;
 import cn.nukkit.level.Position;
 import cn.nukkit.scheduler.Task;
 import cn.nukkit.utils.Config;
@@ -27,11 +28,15 @@ public class AutoSpawn extends Task {
         //spawn
         for (Config config:MRPGNPC.pointconfigs.values()){
             //spawnpoint position
-            Position position = new Position();
-            position.x = Double.parseDouble(config.getString("PointPosition").split(":")[0]);
-            position.y = Double.parseDouble(config.getString("PointPosition").split(":")[1]);
-            position.z = Double.parseDouble(config.getString("PointPosition").split(":")[2]);
-            position.level = MRPGNPC.mrpgnpc.getServer().getLevelByName(config.getString("PointPosition").split(":")[3]);
+            Location location = new Location();
+            location.x = Double.parseDouble(config.getString("PointPosition").split(":")[0]);
+            location.y = Double.parseDouble(config.getString("PointPosition").split(":")[1]);
+            location.z = Double.parseDouble(config.getString("PointPosition").split(":")[2]);
+            location.level = MRPGNPC.mrpgnpc.getServer().getLevelByName(config.getString("PointPosition").split(":")[3]);
+            if (config.getString("PointPosition").split(":").length>4) {
+                location.yaw = Double.parseDouble(config.getString("PointPosition").split(":")[4]);
+                location.pitch = Double.parseDouble(config.getString("PointPosition").split(":")[5]);
+            }
             //mobs spawnlist and limit
             List<String> spawnlist = config.getList("SpawnList");
             for (String spawns:spawnlist){
@@ -49,48 +54,12 @@ public class AutoSpawn extends Task {
                 }
                 if (spawns.split(":").length>=5) {
                     String spawnlimit = spawns.split(":")[4];
-                    for (String limit : spawnlimit.split("-")) {
-                        String condition = limit;
-                        String function = "";
-                        if (limit.contains("~")) {
-                            condition = limit.split("~")[0];
-                            function = limit.split("~")[1];
+                    if (spawnlimit.contains("-")) {
+                        for (String limit : spawnlimit.split("-")) {
+                            canSpawn = onCheckSpawnLimit(limit,location);
                         }
-                        switch (condition) {
-                            case "atDay": {
-                                if (!position.getLevel().isDaytime()) {
-                                    canSpawn = false;
-                                }
-                                break;
-                            }
-                            case "atNight": {
-                                if (position.getLevel().isDaytime()) {
-                                    canSpawn = false;
-                                }
-                                break;
-                            }
-                            case "playersNearby": {
-                                boolean nearby = false;
-                                for (Player player : position.getLevel().getPlayers().values()) {
-                                    if (player.distance(position) <= Double.parseDouble(function)) {
-                                        nearby = true;
-                                    }
-                                }
-                                canSpawn = nearby;
-                                break;
-                            }
-                            case "noOneNearby": {
-                                boolean nearby = false;
-                                for (Player player : position.getLevel().getPlayers().values()) {
-                                    if (player.distance(position) <= Double.parseDouble(function)) {
-                                        nearby = true;
-                                    }
-                                }
-                                canSpawn = !nearby;
-                                break;
-                            }
-                            default:
-                        }
+                    }else{
+                        canSpawn = onCheckSpawnLimit(spawnlimit,location);
                     }
                 }
                 //respawntick limit
@@ -102,7 +71,7 @@ public class AutoSpawn extends Task {
 
                 //maxmob limit
                 int mobamount = 0;
-                for (Entity entity:position.getLevel().getEntities()){
+                for (Entity entity:location.getLevel().getEntities()){
                     if (entity instanceof MobNPC) {
                         if (((MobNPC) entity).getMobFeature() != null) {
                             if (((MobNPC) entity).getMobFeature().equals(mobFeature)) {
@@ -121,12 +90,57 @@ public class AutoSpawn extends Task {
                         spawnamount = maxamount-mobamount;
                     }
                     for (int t = 0;t<spawnamount;t++) {
-                        MobNPC npc = MRPGNPC.mrpgnpc.spawnNPC(MRPGNPC.mrpgnpc.getServer().getConsoleSender(), mobfile, position, mobFeature);
+                        MobNPC npc = MRPGNPC.mrpgnpc.spawnNPC(MRPGNPC.mrpgnpc.getServer().getConsoleSender(), mobfile, location, mobFeature);
                         npc.spawnToAll();
                     }
                     spawnTick.put(mobFeature,0);
                 }
             }
         }
+    }
+    public boolean onCheckSpawnLimit(String limit,Location location){
+        boolean canSpawn = true;
+        String condition = limit;
+        String function = "";
+        if (limit.contains("~")) {
+            condition = limit.split("~")[0];
+            function = limit.split("~")[1];
+        }
+        switch (condition) {
+            case "atDay": {
+                if (location.getLevel().getTime()>=13800&&location.getLevel().getTime()<24000) {
+                    canSpawn = false;
+                }
+                break;
+            }
+            case "atNight": {
+                if (location.getLevel().getTime()>=0&&location.getLevel().getTime()<13800) {
+                    canSpawn = false;
+                }
+                break;
+            }
+            case "playersNearby": {
+                boolean nearby = false;
+                for (Player player : location.getLevel().getPlayers().values()) {
+                    if (player.distance(location) <= Double.parseDouble(function)) {
+                        nearby = true;
+                    }
+                }
+                canSpawn = nearby;
+                break;
+            }
+            case "noOneNearby": {
+                boolean nearby = false;
+                for (Player player : location.getLevel().getPlayers().values()) {
+                    if (player.distance(location) <= Double.parseDouble(function)) {
+                        nearby = true;
+                    }
+                }
+                canSpawn = !nearby;
+                break;
+            }
+            default:
+        }
+        return canSpawn;
     }
 }

@@ -15,6 +15,7 @@ import cn.nukkit.level.particle.ExplodeParticle;
 import cn.nukkit.level.particle.HugeExplodeSeedParticle;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.nbt.tag.CompoundTag;
+import cn.nukkit.network.protocol.PlayerSkinPacket;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.scheduler.Task;
 import cn.nukkit.utils.Config;
@@ -22,10 +23,11 @@ import com.muffinhead.MRPGNPC.Effects.Lightning;
 import com.muffinhead.MRPGNPC.MRPGNPC;
 
 import java.awt.im.InputContext;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.lang.Boolean.getBoolean;
@@ -54,6 +56,7 @@ public class MobNPC extends NPC{
             attackEntity(this.target);
         }
         tickSkillRun();
+        healthSkillRun();
         skillTickUpdate();
         noHateHeal();
         SkillDelayUpdate();
@@ -63,12 +66,12 @@ public class MobNPC extends NPC{
     public void SkillDelayUpdate(){
         SkillDelay--;
     }
-
+    ////////SkillsRun
     public void tickSkillRun(){
         List<String> tickSkill = GetNPCSkills(this,"onTick");
         for (String skillandcondition:tickSkill){
-            String condition = skillandcondition.split(":")[0];
-            String skill = skillandcondition.split(":")[1];
+            String condition = skillandcondition.split(":")[1];
+            String skill = skillandcondition.split(":")[2];
             if (!skillTick.containsKey(condition+":"+skill)) {
                 skillTick.put(condition+":"+skill, 0);
             }
@@ -78,7 +81,70 @@ public class MobNPC extends NPC{
             }
         }
     }
-
+    public void damageSkillRun(){
+        List<String> damageSkill = GetNPCSkills(this,"onDamage");
+        for (String skillandcondition:damageSkill){
+            String condition = skillandcondition.split(":")[1];
+            String skill = skillandcondition.split(":")[2];
+            readSkill(skill);
+        }
+    }
+    public void beDamagedSkillRun(){
+        List<String> beDamagedSkill = GetNPCSkills(this,"onBeDamaged");
+        for (String skillandcondition:beDamagedSkill){
+            String condition = skillandcondition.split(":")[1];
+            String skill = skillandcondition.split(":")[2];
+            readSkill(skill);
+        }
+    }
+    public void attackingSkillRun(){
+        List<String> attackingSkill = GetNPCSkills(this,"onAttack");
+        for (String skillandcondition:attackingSkill){
+            String condition = skillandcondition.split(":")[1];
+            String skill = skillandcondition.split(":")[2];
+            readSkill(skill);
+        }
+    }
+    public void healthSkillRun() {
+        List<String> healthSkill = GetNPCSkills(this, "onHealth");
+        for (String skillandcondition : healthSkill) {
+            String condition = skillandcondition.split(":")[1];
+            String skill = skillandcondition.split(":")[2];
+            double health = Double.parseDouble(getReplacedNumber(condition));
+            String symbol = getReplacedText(condition.split("~")[1]);
+            switch (symbol) {
+                case "＜":
+                case "<":
+                    if (this.getHealth() < health) {
+                        readSkill(skill);
+                        this.getSkills().remove(skillandcondition);
+                    }
+                    break;
+                case "＜=":
+                case "<=":
+                    if (this.getHealth() <= health) {
+                        readSkill(skill);
+                        this.getSkills().remove(skillandcondition);
+                    }
+                    break;
+                case "＞":
+                case ">":
+                    if (this.getHealth() > health) {
+                        readSkill(skill);
+                        this.getSkills().remove(skillandcondition);
+                    }
+                    break;
+                case "＞=":
+                case ">=":
+                    if (this.getHealth() >= health) {
+                        readSkill(skill);
+                        this.getSkills().remove(skillandcondition);
+                    }
+                    break;
+            }
+        }
+    }
+    ////////SkillsRun
     public void skillTickUpdate(){
         if (this.target != null) {
             for (String s : skillTick.keySet()) {
@@ -112,7 +178,7 @@ public class MobNPC extends NPC{
                 String skill = skillandcondition.split(":")[2];
                 if (new Random().nextInt(100)+1<=Integer.parseInt(prob)) {
                     if (condition.contains(type)){
-                        finalskills.add(condition+":"+skill);
+                        finalskills.add(prob+":"+condition+":"+skill);
                     }
                 }
             }
@@ -124,15 +190,21 @@ public class MobNPC extends NPC{
     public boolean attack(EntityDamageEvent source) {
         if (source.getEntity() == this){
             if (!source.isCancelled()){
-                List<String> beDamagedSkill = GetNPCSkills(this,"onBeDamaged");
-                for (String skillandcondition:beDamagedSkill){
-                    String condition = skillandcondition.split(":")[0];
-                    String skill = skillandcondition.split(":")[1];
-                    readSkill(skill);
-                }
+                beDamagedSkillRun();
+            }
+        }
+        if (source instanceof EntityDamageByEntityEvent){
+            if (((EntityDamageByEntityEvent) source).getDamager()==this){
+                damageSkillRun();
             }
         }
         return super.attack(source);
+    }
+
+    @Override
+    public void attackEntity(Entity target) {
+        super.attackEntity(target);
+        attackingSkillRun();
     }
 
     public void readSkill(String configname) {
@@ -143,7 +215,29 @@ public class MobNPC extends NPC{
                 for (String skill : skillList) {
                     String[] info = skill.split(":");
                     MobNPC mob = this;
-                    setReadSkill(info, mob);
+                    if (info.length == 2) {
+                        if (info[1].contains("lastDamager")||info[1].contains("damager.name")) {
+                            getServer().getScheduler().scheduleDelayedTask(new Task() {
+                                @Override
+                                public void onRun(int i) {
+                                    setReadSkill(info, mob);
+                                }
+                            }, 1);
+                        } else {
+                            setReadSkill(info, mob);
+                        }
+                    } else if (info.length >= 3) {
+                        if (info[1].contains("lastDamager")||info[2].contains("damager.name")){
+                            getServer().getScheduler().scheduleDelayedTask(new Task() {
+                                @Override
+                                public void onRun(int i) {
+                                    setReadSkill(info, mob);
+                                }
+                            }, 1);
+                        }
+                    } else {
+                        setReadSkill(info, mob);
+                    }
                 }
             }
         }
@@ -252,85 +346,80 @@ public class MobNPC extends NPC{
                     }
                     break;
                 }
-                /*
-                case "切换手持物品": {
+                case "ChangeItemInHand": {
                     int id = parseInt(s[1]);
                     int damage = parseInt(s[2]);
-                    boolean fumo = getBoolean(s[3]);
+                    boolean enchant = getBoolean(s[3]);
                     Item item = Item.get(id, damage);
-                    if (fumo)
+                    if (enchant) {
                         item.addEnchantment(Enchantment.get(17));
+                    }
                     mob.getInventory().setItemInHand(item);
                     break;
                 }
-                case "更改攻击范围": {
+                case "ChangeAttackRange": {
                     mob.setAttackrange(readEntityParameters(s[1]));
                     break;
                 }
-                case "刷新攻击间隔": {
+                case "RefreshAttackDelay": {
                     mob.attackdelay = attackTime;
                     break;
                 }
-                /*
-                case "更换皮肤": {
+                case "ChangeSkin": {
                     String skinname = s[1];
-                    respawnMobNPC(mob, skinname, "geometry." + s[1]);
+                    mob.setSkin(MRPGNPC.skins.get(skinname));
+                    sendSkinChangePacket(mob);
                     break;
                 }
-                case "执行命令": {
-                    String cmd = recoverString(s[1]);
-                    Server.getInstance().dispatchCommand(getServer().getConsoleSender(), cmd);
-                    break;
-                }
-                case "群体雷击": {
-                    double distance = readEntityParameters(s[1]);
-                    for (Player p : getLevel().getPlayers().values()) {
-                        if (p.distance(mob) <= distance) {
-                            if (hasSpawned.containsValue(p)) {
-                                if (p.level==this.level) {
-                                    Lightning lightning = new Lightning(mob.chunk, Lightning.getDefaultNBT(p));
-                                    lightning.spawnToAll();
-                                }
+                case "RunCommand": {
+                    if (s[1].contains("damager.name")) {
+                        getServer().getScheduler().scheduleDelayedTask(new Task() {
+                            @Override
+                            public void onRun(int i) {
+                                String cmd = recoverString(s[1]);
+                                Server.getInstance().dispatchCommand(getServer().getConsoleSender(), cmd);
                             }
+                        },1);
+                    }
+                    break;
+                }
+                case "Lightning": {
+                    List<Entity> entities = this.getTargets(s[1].split("-"));
+                    for (Entity entity:entities) {
+                        if (!(entity == null)) {
+                            Lightning lightning = new Lightning(mob.chunk, Lightning.getDefaultNBT(entity));
+                            lightning.attack(0);
+                            lightning.spawnToAll();
                         }
                     }
                     break;
                 }
-                case "单体雷击": {
-                    Player player = getTarget(s[1]);
-                    if (!(player == null)) {
-                        Lightning lightning = new Lightning(mob.chunk, Lightning.getDefaultNBT(player));
-                        lightning.attack(0);
-                        lightning.spawnToAll();
-                    }
-                    break;
-                }
-                case "变更伤害": {
+                case "ChangeDamage": {
                     double strength = readEntityParameters(s[1]);
-                    mob.damage = (float) strength;
+                    mob.setDamage((float) strength);
                     break;
                 }
-                case "变更大小": {
+                case "ChangeSize": {
                     double size = readEntityParameters(s[1]);
-                    setScale((float) size);
+                    mob.setScale((float) size);
                     break;
                 }
-                case "变更击退": {
+                case "ChangeKnockback": {
                     double knockback = readEntityParameters(s[1]);
-                    mob.knockback = (float) knockback;
+                    mob.setKnockback((float) knockback);
                     break;
                 }
-                case "变更移速": {
+                case "ChangeMovementSpeed": {
                     double speed = readEntityParameters(s[1]);
-                    mob.speed = speed;
+                    mob.setSpeed(speed);
                     break;
                 }
-                case "变更攻速": {
+                case "ChangeAttackdDelay": {
                     int speed = Integer.parseInt(s[1]);
                     mob.setAttackdelay(speed);
                     break;
                 }
-                case "插入技能": {
+                case "InsertSkill": {
                     List<String> skills = mob.getSkills();
                     String skill = "";
                     for (int i = 1;i<s.length;i++){
@@ -340,7 +429,7 @@ public class MobNPC extends NPC{
                     mob.setSkills(skills);
                     break;
                 }
-                case "删除技能": {
+                case "RemoveSkill": {
                     List<String> skills = mob.getSkills();
                     String skill = "";
                     for (int i = 1;i<s.length;i++){
@@ -350,24 +439,29 @@ public class MobNPC extends NPC{
                     mob.setSkills(skills);
                     break;
                 }
-                case "召唤怪物": {
-                    Config config = Main.mobconfigs.get(s[1]);
-                    List<Double> XYZ = new ArrayList<>();
-                    XYZ.add(readPlayerParameters(s[2]));
-                    XYZ.add(readPlayerParameters(s[3]));
-                    XYZ.add(readPlayerParameters(s[4]));
-                    Main.spawnMobNPC(config, "", s[1], XYZ, mob.level, mob.getChunkX(), mob.getChunkZ(), true, mob.isFB, llspawnPlayer, roomName);
-                    break;
-                }
-
-                case "回复血量": {
+                case "Heal": {
                     double amount = readEntityParameters(s[1]);
                     this.heal((float) amount);
                     break;
                 }
+                case "Action":{
+                    broadcastEntityEvent(Integer.parseInt(s[1]));
+                    break;
+                }
+                /*
+                case "SummonMob": {
+                    Config config = MRPGNPC.mobconfigs.get(s[1]);
+                    List<Double> XYZ = new ArrayList<>();
+                    XYZ.add(readEntityParameters(s[2]));
+                    XYZ.add(readEntityParameters(s[3]));
+                    XYZ.add(readEntityParameters(s[4]));
+                    MRPGNPC.mrpgnpc.spawnNPC(config, "", s[1], );
+                    break;
+                }
+
                 */
                 /*
-                case "扇形攻击":{
+                case "SectorAttack":{
                     for (Entity entity:getLevel().getEntities()){
                         // if (LateUpdate(entity.getLocation(),this.getLocation())){
 
@@ -386,5 +480,24 @@ public class MobNPC extends NPC{
                 }
             },SkillDelay);
         }
+    }
+    public static void sendSkinChangePacket(EntityHuman player) {
+        PlayerSkinPacket pk = new PlayerSkinPacket();
+        pk.newSkinName = "new";
+        pk.oldSkinName = "old";
+        pk.uuid = player.getUniqueId();
+        pk.skin = player.getSkin();
+        for (Map.Entry<UUID, Player> entry : Server.getInstance().getOnlinePlayers().entrySet()) {
+            entry.getValue().dataPacket(pk);
+        }
+        //Server.getInstance().updatePlayerListData(player.getUniqueId(), player.getId(), player.getName(), player.getSkin(), player.getRawUniqueId());
+    }
+    public static String getReplacedNumber(String num) {
+        num = num.replaceAll("[^\\d.]", "");
+        return num;
+    }
+    public static String getReplacedText(String num) {
+        num = num.replaceAll("\\d+","").replaceAll("\\.","");
+        return num;
     }
 }
