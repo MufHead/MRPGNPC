@@ -9,8 +9,6 @@ import cn.nukkit.entity.item.EntityItem;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Location;
-import cn.nukkit.level.Position;
-import cn.nukkit.math.Vector3;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.Config;
@@ -27,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,6 +38,7 @@ public class MRPGNPC extends PluginBase {
     public static ConcurrentHashMap<String, Config> pointconfigs = new ConcurrentHashMap<String, Config>();
     public static ConcurrentHashMap<String, Config> skillconfigs = new ConcurrentHashMap<String, Config>();
     public static ConcurrentHashMap<String, Skin> skins = new ConcurrentHashMap<>();
+
 
     @Override
     public void onLoad() {

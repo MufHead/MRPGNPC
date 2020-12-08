@@ -1,9 +1,9 @@
 name: MRPGNPC
-author: MRPGNPC
+author: MuffinHead
 main: com.muffinhead.MRPGNPC.MRPGNPC
 load: POSTWORLD
 api: "1.0.8"
-version: "1.0.5"
+version: "1.0.51"
 commands:
   mrn:
     description: "mrn"

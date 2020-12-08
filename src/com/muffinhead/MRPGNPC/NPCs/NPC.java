@@ -121,6 +121,7 @@ public class NPC extends EntityHuman {
         super(chunk, nbt.putCompound("Skin", new CompoundTag()));
         nbt
                 .putString("ModelID", this.skin.getSkinId())
+                .putString("ModelId", this.skin.getSkinId())
                 .putString("GeometryName", this.geometryName)
                 .putByteArray("GeometryData", this.skin.getGeometryData().getBytes(StandardCharsets.UTF_8));
         spawnPosition = getPosition();

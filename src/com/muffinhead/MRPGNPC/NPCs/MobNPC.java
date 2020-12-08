@@ -15,6 +15,8 @@ import cn.nukkit.level.particle.ExplodeParticle;
 import cn.nukkit.level.particle.HugeExplodeSeedParticle;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.nbt.tag.CompoundTag;
+import cn.nukkit.network.protocol.AnimatePacket;
+import cn.nukkit.network.protocol.PlayerActionPacket;
 import cn.nukkit.network.protocol.PlayerSkinPacket;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.scheduler.Task;
@@ -150,6 +152,8 @@ public class MobNPC extends NPC{
             for (String s : skillTick.keySet()) {
                 if (skillTick.get(s) > 0) {
                     skillTick.put(s, skillTick.get(s) - 1);
+                }else{
+                    skillTick.put(skinname,0);
                 }
             }
         }
@@ -490,6 +494,15 @@ public class MobNPC extends NPC{
         for (Map.Entry<UUID, Player> entry : Server.getInstance().getOnlinePlayers().entrySet()) {
             entry.getValue().dataPacket(pk);
         }
+        //Server.getInstance().updatePlayerListData(player.getUniqueId(), player.getId(), player.getName(), player.getSkin(), player.getRawUniqueId());
+    }
+    public static void sendSkinChangePacket(EntityHuman entityHuman,Player player) {
+        PlayerSkinPacket pk = new PlayerSkinPacket();
+        pk.newSkinName = "new";
+        pk.oldSkinName = "old";
+        pk.uuid = entityHuman.getUniqueId();
+        pk.skin = entityHuman.getSkin();
+        player.dataPacket(pk);
         //Server.getInstance().updatePlayerListData(player.getUniqueId(), player.getId(), player.getName(), player.getSkin(), player.getRawUniqueId());
     }
     public static String getReplacedNumber(String num) {
