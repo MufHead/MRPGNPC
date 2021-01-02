@@ -123,7 +123,8 @@ public class NPC extends EntityHuman {
                 .putString("ModelID", this.skin.getSkinId())
                 .putString("ModelId", this.skin.getSkinId())
                 .putString("GeometryName", this.geometryName)
-                .putByteArray("GeometryData", this.skin.getGeometryData().getBytes(StandardCharsets.UTF_8));
+                .putByteArray("GeometryData", this.skin.getGeometryData().getBytes(StandardCharsets.UTF_8)
+                .putBoolean("IsTrustedSkin", true));
         spawnPosition = getPosition();
 //teleport to avoid invisible bug
         this.teleport(new Vector3(this.x + 0.1, this.y, this.z + 0.1));
