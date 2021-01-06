@@ -21,6 +21,7 @@ import cn.nukkit.network.protocol.PlayerSkinPacket;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.scheduler.Task;
 import cn.nukkit.utils.Config;
+import com.muffinhead.MRPGNPC.Effects.Bullet;
 import com.muffinhead.MRPGNPC.Effects.Lightning;
 import com.muffinhead.MRPGNPC.MRPGNPC;
 
@@ -62,6 +63,7 @@ public class MobNPC extends NPC{
         skillTickUpdate();
         noHateHeal();
         SkillDelayUpdate();
+        boundingbox();
         return super.entityBaseTick(tickDiff);
     }
 
@@ -238,6 +240,8 @@ public class MobNPC extends NPC{
                                     setReadSkill(info, mob);
                                 }
                             }, 1);
+                        }else{
+                            setReadSkill(info, mob);
                         }
                     } else {
                         setReadSkill(info, mob);
@@ -365,8 +369,8 @@ public class MobNPC extends NPC{
                     mob.setAttackrange(readEntityParameters(s[1]));
                     break;
                 }
-                case "RefreshAttackDelay": {
-                    mob.attackdelay = attackTime;
+                case "setAttackDelay": {
+                    mob.attackdelay = Integer.parseInt(s[1]);
                     break;
                 }
                 case "ChangeSkin": {
@@ -452,6 +456,24 @@ public class MobNPC extends NPC{
                     broadcastEntityEvent(Integer.parseInt(s[1]));
                     break;
                 }
+                case "Shoot":{
+                    //entityId-startPosX-startPosY-startPosZ-motionX-motionY-motionZ-bulletDamage-bulletKnockback-speed-maxDistance-bulletSize
+                    //-Math.sin(npc.yaw / 180.0D * 3.14) * Math.cos(npc.pitch / 180.0D * 3.14)
+                    //-Math.sin(npc.pitch / 180.0D * 3.14)
+                    // Math.cos(npc.yaw / 180.0D * 3.14) * Math.cos(npc.pitch / 180.0D * 3.14)
+                    Vector3 startpos = new Vector3(readEntityParameters(s[2]),readEntityParameters(s[3]),readEntityParameters(s[4]));
+                    int entityId = Integer.parseInt(s[1]);
+                    Vector3 motion = new Vector3(readEntityParameters(s[5]),readEntityParameters(s[6]),readEntityParameters(s[7])).multiply(Double.parseDouble(s[10]));
+                    Bullet bullet = new Bullet(this.getChunk(),Bullet.getDefaultNBT(startpos),mob,entityId,motion,mob.yaw,mob.pitch);
+                    bullet.damage = (float) readEntityParameters(s[8]);
+                    bullet.knockback = (float) readEntityParameters(s[9]);
+                    bullet.MaxDistance = readEntityParameters(s[11]);
+                    if (s.length>=13){
+                        bullet.scale = (float) readEntityParameters(s[12]);
+                    }
+                    bullet.spawnToAll();
+                    break;
+                }
                 /*
                 case "SummonMob": {
                     Config config = MRPGNPC.mobconfigs.get(s[1]);
@@ -494,15 +516,6 @@ public class MobNPC extends NPC{
         for (Map.Entry<UUID, Player> entry : Server.getInstance().getOnlinePlayers().entrySet()) {
             entry.getValue().dataPacket(pk);
         }
-        //Server.getInstance().updatePlayerListData(player.getUniqueId(), player.getId(), player.getName(), player.getSkin(), player.getRawUniqueId());
-    }
-    public static void sendSkinChangePacket(EntityHuman entityHuman,Player player) {
-        PlayerSkinPacket pk = new PlayerSkinPacket();
-        pk.newSkinName = "new";
-        pk.oldSkinName = "old";
-        pk.uuid = entityHuman.getUniqueId();
-        pk.skin = entityHuman.getSkin();
-        player.dataPacket(pk);
         //Server.getInstance().updatePlayerListData(player.getUniqueId(), player.getId(), player.getName(), player.getSkin(), player.getRawUniqueId());
     }
     public static String getReplacedNumber(String num) {

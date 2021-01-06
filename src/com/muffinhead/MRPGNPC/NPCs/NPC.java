@@ -112,10 +112,8 @@ public class NPC extends EntityHuman {
 
     protected List<String> skills = new ArrayList<>();
 
+    protected boolean enableBox = true;
 
-    public void setGeometryName(String geometryName) {
-        this.geometryName = geometryName;
-    }
 
     public NPC(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt.putCompound("Skin", new CompoundTag()));
@@ -127,6 +125,7 @@ public class NPC extends EntityHuman {
         spawnPosition = getPosition();
 //teleport to avoid invisible bug
         this.teleport(new Vector3(this.x + 0.1, this.y, this.z + 0.1));
+
         this.teleport(new Vector3(this.x - 0.1, this.y, this.z - 0.1));
     }
 
@@ -522,10 +521,10 @@ public class NPC extends EntityHuman {
     }
 
     public List<Entity> getTargets(String[] s) {
-        return getTargets(s[0], s.length < 2 ? this.getHaterange() : Integer.parseInt(s[1]), s.length < 3 ? this.level.getEntities().length : Integer.parseInt(s[2]), null);
+        return getTargets(s[0], s.length < 2 ? 0 : Double.parseDouble(s[2]), s.length < 3 ? this.getHaterange() : Integer.parseInt(s[2]), s.length < 4 ? this.level.getEntities().length : Integer.parseInt(s[3]), null);
     }
 
-    public List<Entity> getTargets(String type, double distance, int amountlimit, List<String> creaturetype) {
+    public List<Entity> getTargets(String type,double figure,double distance, int amountlimit, List<String> creaturetype) {
         List<Entity> entities = new ArrayList<>();
         for (Entity entity : getLevel().getEntities()) {
             if (entity.distance(this) <= distance) {
@@ -534,12 +533,6 @@ public class NPC extends EntityHuman {
                 } else {
                     simplifyTarget(entities, activeattackcreature, entity);
                 }
-            }
-        }
-        if (entities.size() > amountlimit) {
-            Collections.shuffle(entities);
-            for (int i = amountlimit; i < entities.size(); i++) {
-                entities.remove(i);
             }
         }
         switch (type) {
@@ -587,7 +580,7 @@ public class NPC extends EntityHuman {
                 entities.add(entity);
                 break;
             }
-            case "lastDamager":{
+            case "lastDamager": {
                 if (this.getLastDamageCause() != null) {
                     if (this.getLastDamageCause().getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
                         if (((EntityDamageByEntityEvent) this.getLastDamageCause()).getDamager() instanceof Player) {
@@ -598,8 +591,59 @@ public class NPC extends EntityHuman {
                 }
                 break;
             }
-            case "all":{
+            case "distance":{
+                for (Entity entity:this.getLevel().getEntities()){
+                    if (entity.distance(this)<=distance){
+                        if (entity!=this) {
+                            entities.add(entity);
+                        }
+                    }
+                    if (creaturetype != null) {
+                        simplifyTarget(entities, creaturetype, entity);
+                    } else {
+                        simplifyTarget(entities, activeattackcreature, entity);
+                    }
+                }
                 break;
+            }
+            case "hate":{
+                for (Entity entity:entities) {
+                    if (this.getHatePool().containsKey(entity)) {
+                        if (this.getHatePool().get(entity) >= figure) {
+                            entities.add(entity);
+                        }
+                    }
+                    if (creaturetype != null) {
+                        simplifyTarget(entities, creaturetype, entity);
+                    } else {
+                        simplifyTarget(entities, activeattackcreature, entity);
+                    }
+                }
+                break;
+            }
+            case "damage":{
+                for (Entity entity:entities) {
+                    if (this.getDamagePool().containsKey(entity)) {
+                        if (this.getDamagePool().get(entity) >= figure) {
+                            entities.add(entity);
+                        }
+                    }
+                    if (creaturetype != null) {
+                        simplifyTarget(entities, creaturetype, entity);
+                    } else {
+                        simplifyTarget(entities, activeattackcreature, entity);
+                    }
+                }
+                break;
+            }
+            case "all": {
+                break;
+            }
+        }
+        if (entities.size() > amountlimit) {
+            Collections.shuffle(entities);
+            for (int i = amountlimit; i < entities.size(); i++) {
+                entities.remove(i);
             }
         }
         return entities;
@@ -966,6 +1010,14 @@ public class NPC extends EntityHuman {
         this.cantAttractiveTarget = cantAttractiveTarget;
     }
 
+    public void setGeometryName(String geometryName) {
+        this.geometryName = geometryName;
+    }
+
+    public void setEnableBox(boolean enableBox) {
+        this.enableBox = enableBox;
+    }
+
     public void setSkills(List<String> skills) {
         this.skills = skills;
     }
@@ -980,7 +1032,7 @@ public class NPC extends EntityHuman {
                 this.id = Entity.entityCount++;
             }
             if (skin == null) {
-                this.setSkin(MRPGNPC.skins.get(getSkinname()));
+                this.setSkin(MRPGNPC.skins.get(skinname));
             }
             try {
                 this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getName(), this.getSkin(), new Player[]{player});
@@ -1200,6 +1252,11 @@ public class NPC extends EntityHuman {
             return d;
         } catch (ScriptException e) {
             System.out.println(s);
+            try {
+                System.out.println(se.eval(s).toString());
+            } catch (ScriptException scriptException) {
+                scriptException.printStackTrace();
+            }
             System.out.println("算式错误");
         }
         return 0;
@@ -1245,5 +1302,23 @@ public class NPC extends EntityHuman {
                 .replaceAll("npc\\.damage", this.damage + "");
 
         return s;
+    }
+
+    public void boundingbox() {
+        if (enableBox) {
+            for (Entity entity : this.getLevel().getEntities()) {
+                if (this.distance(entity) <= 0.8 * this.scale) {
+                    double x1 = this.x*this.getWidth();
+                    double z1 = this.z*this.getWidth();
+                    double x2 = entity.x*entity.getWidth();
+                    double z2 = entity.z*entity.getWidth();
+                    double xx = x1 - x2;
+                    double zz = z1 - z2;
+                    this.frontX = xx;
+                    this.frontZ = zz;
+                    this.move(this.frontX, frontY, this.frontZ);
+                }
+            }
+        }
     }
 }

@@ -7,11 +7,13 @@ import cn.nukkit.entity.Entity;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.EventPriority;
 import cn.nukkit.event.Listener;
+import cn.nukkit.event.entity.EntityDamageByChildEntityEvent;
 import cn.nukkit.event.entity.EntityDamageByEntityEvent;
 import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.event.entity.EntityDeathEvent;
 import cn.nukkit.event.player.PlayerDeathEvent;
 import cn.nukkit.math.Vector3;
+import com.muffinhead.MRPGNPC.Effects.Bullet;
 import com.muffinhead.MRPGNPC.NPCs.MobNPC;
 import com.muffinhead.MRPGNPC.NPCs.NPC;
 
@@ -208,6 +210,14 @@ public class MobNPCBeAttack implements Listener {
             }
         }else{
             Server.getInstance().dispatchCommand(sender, finalCommand);
+        }
+    }
+    @EventHandler
+    public void onDamage(EntityDamageByChildEntityEvent event){
+        Entity bullet = event.getChild();
+        if (bullet instanceof Bullet){
+            event.setKnockBack(((Bullet) bullet).knockback);
+            event.setDamage(((Bullet) bullet).damage);
         }
     }
 }

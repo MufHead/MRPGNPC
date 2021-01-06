@@ -2,6 +2,7 @@ package com.muffinhead.MRPGNPC.Tasks;
 
 import cn.nukkit.Player;
 import cn.nukkit.entity.Entity;
+import cn.nukkit.level.Level;
 import cn.nukkit.level.Location;
 import cn.nukkit.level.Position;
 import cn.nukkit.scheduler.Task;
@@ -11,6 +12,8 @@ import com.muffinhead.MRPGNPC.NPCs.MobNPC;
 
 import javax.swing.*;
 import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +31,11 @@ public class AutoSpawn extends Task {
         //spawn
         for (Config config:MRPGNPC.pointconfigs.values()){
             //spawnpoint position
+
+            if (!MRPGNPC.mrpgnpc.getServer().loadLevel(config.getString("PointPosition").split(":")[3])){
+                System.out.println("level " + config.getString("PointPosition").split(":")[3] + " is not exist");
+            }else {
+            }
             Location location = new Location();
             location.x = Double.parseDouble(config.getString("PointPosition").split(":")[0]);
             location.y = Double.parseDouble(config.getString("PointPosition").split(":")[1]);
@@ -71,7 +79,10 @@ public class AutoSpawn extends Task {
 
                 //maxmob limit
                 int mobamount = 0;
-                for (Entity entity:location.getLevel().getEntities()){
+                if (MRPGNPC.mrpgnpc.getServer().isLevelLoaded(config.getString("PointPosition").split(":")[3])){
+                    MRPGNPC.mrpgnpc.getServer().loadLevel(config.getString("PointPosition").split(":")[3]);
+                }
+                for (Entity entity:location.level.getEntities()){
                     if (entity instanceof MobNPC) {
                         if (((MobNPC) entity).getMobFeature() != null) {
                             if (((MobNPC) entity).getMobFeature().equals(mobFeature)) {

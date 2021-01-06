@@ -12,6 +12,7 @@ import cn.nukkit.level.Location;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.Config;
+import com.google.gson.internal.LinkedTreeMap;
 import com.muffinhead.MRPGNPC.Events.MobNPCBeAttack;
 import com.muffinhead.MRPGNPC.NPCs.MobNPC;
 import com.muffinhead.MRPGNPC.NPCs.NPC;
@@ -24,9 +25,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Objects;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.nukkit.utils.Utils.readFile;
@@ -50,8 +50,6 @@ public class MRPGNPC extends PluginBase {
         getServer().getLogger().info("MRPGNPC is enable!The author is MuffinHead.");
         getServer().getPluginManager().registerEvents(new MobNPCBeAttack(),this);
         mrpgnpc = this;
-        saveResource("GreenCross/skin.png", "/Skins/GreenCross/skin.png", false);
-        saveResource("GreenCross/geometry.json", "/Skins/GreenCross/geometry.json", false);
         checkMobs();
         checkPoints();
         checkSkills();
@@ -321,8 +319,8 @@ public class MRPGNPC extends PluginBase {
                     npc.setUnattractivecreature(config.getList("UnattractiveCreature"));
                     npc.setDrops(config.getList("Drops"));
                     npc.setSkinname(config.getString("Skin"));
-                    Skin skin = skins.get(config.getString("Skin"));
-                    npc.setSkin(skin);
+                    npc.setSkin(skins.get(config.getString("Skin")));
+                    MobNPC.sendSkinChangePacket(npc);
                     return npc;
                 }
             }
@@ -356,8 +354,8 @@ public class MRPGNPC extends PluginBase {
                 npc.setUnattractivecreature(config.getList("UnattractiveCreature"));
                 npc.setDrops(config.getList("Drops"));
                 npc.setSkinname(config.getString("Skin"));
-                Skin skin = skins.get(config.getString("Skin"));
-                npc.setSkin(skin);
+                npc.setSkin(skins.get(config.getString("Skin")));
+                MobNPC.sendSkinChangePacket(npc);
                 return npc;
             }
         }
@@ -377,44 +375,30 @@ public class MRPGNPC extends PluginBase {
             skinsFolder.mkdirs();
         }
         for (File skinFolder : Objects.requireNonNull(skinsFolder.listFiles())) {
-            Skin skin = new Skin();
-            /*CompoundTag tag = getSkinTag(skinFolder.getName());
-              tagMap.put(skinFolder.getName(), tag);*/
-            Path skinpath = skinFolder.toPath().resolve("skin.png");
-            Path geometrypath = skinFolder.toPath().resolve("geometry.json");
-            BufferedImage skindata = null;
-            String skingeometry = "";
-            try {
-                skindata = ImageIO.read(skinpath.toFile());
-                skingeometry = new String(Files.readAllBytes(geometrypath), StandardCharsets.UTF_8);
-                if (skindata != null) {
-                    skin.setSkinData(skindata);
-                    skin.setGeometryData(skingeometry);
-                    skin.setGeometryName("geometry." + skinFolder.getName());
-                    skin.setSkinId(skinFolder.getName());
+            Skin skin = newSkin(skinFolder.toPath());
+            Path capePath = skinFolder.toPath().resolve("cape.png");
+            if (capePath.toFile().exists()) {
+                try {
+                    BufferedImage capeData;
+                    capeData = ImageIO.read(capePath.toFile());
+                    skin.setCapeData(capeData);
+                    skin.setCapeId(skinFolder.getPath());
+                } catch (IOException e) {
+                    System.out.println("Cape" + skinFolder.getName() + "can't use");
                 }
-                Path capePath = skinFolder.toPath().resolve("cape.png");
-                if (capePath.toFile().exists()) {
-                    try {
-                        BufferedImage capeData;
-                        capeData = ImageIO.read(capePath.toFile());
-                        skin.setCapeData(capeData);
-                        skin.setCapeId(skinFolder.getPath());
-                    } catch (IOException e) {
-                        System.out.println("Cape" + skinFolder.getName() + "can't use");
-                    }
-                }
-                skin.setTrusted(true);
-                skins.put(skinFolder.getName(), skin);
-            } catch (IOException event) {
-                System.out.println("skin not exist");
             }
+            skins.put(skinFolder.getName(), skin);
         }
-        File[] files = skinsFolder.listFiles();
-        for (File skinthings : files) {
-            // CompoundTag tag = getSkinTag(skinthings.getName());
-            //tagMap.put(skinthings.getName(), tag);
-        }
+    }
+    public Skin newSkin(Path path) throws IOException {
+        Skin skin = new Skin();
+        skin.generateSkinId("jpm");
+        skin.setGeometryName(path.toString()+"/geometry.jpm");
+        skin.setSkinResourcePatch("{\"geometry\":{\"default\":\"geometry.jpm\"}}");
+        skin.setGeometryData(new String(Files.readAllBytes(Paths.get(path.toString() + "/geometry.json"))));
+        skin.setSkinData(ImageIO.read(Paths.get(path.toString() + "/skin.png").toFile()));
+        skin.setTrusted(true);
+        return skin;
     }
     public void checkMobs(){
         File mobsFolder = getMobFolder().toFile();
@@ -445,44 +429,5 @@ public class MRPGNPC extends PluginBase {
             Config config = new Config(skillfile.getPath());
             skillconfigs.put(skillfile.getName().replace(".yml", ""), config);
         }
-    }
-    public static CompoundTag getSkinTag(String skinName) throws IOException {
-        Skin skin = new Skin();
-        BufferedImage skindata = null;
-        try {
-            skindata = ImageIO.read(new File(mrpgnpc.getDataFolder() + "/Skins/" + skinName + "/skin.png"));
-        } catch (IOException var19) {
-            System.out.println("model not exist");
-        }
-
-        if (skindata != null) {
-            skin.setSkinData(skindata);
-            skin.setSkinId(skinName);
-        }
-        Map<String, Object> skinJson = (new Config(mrpgnpc.getDataFolder() + "/Skins/" + skinName + "/geometry.json", Config.JSON)).getAll();
-        String geometryName = null;
-        for (Map.Entry<String, Object> entry1 : skinJson.entrySet()) {
-            if (geometryName == null) {
-                geometryName = entry1.getKey();
-            }
-        }
-        skin.setGeometryName(geometryName);
-        skin.setGeometryData(readFile(new File(mrpgnpc.getDataFolder() + "/Skins/" + skinName + "/geometry.json")));
-        CompoundTag skinTag = new CompoundTag()
-                .putByteArray("Data", skin.getSkinData().data)
-                .putInt("SkinImageWidth", skin.getSkinData().width)
-                .putInt("SkinImageHeight", skin.getSkinData().height)
-                .putString("ModelId", skin.getSkinId())
-                .putString("CapeId", skin.getCapeId())
-                .putByteArray("CapeData", skin.getCapeData().data)
-                .putInt("CapeImageWidth", skin.getCapeData().width)
-                .putInt("CapeImageHeight", skin.getCapeData().height)
-                .putByteArray("SkinResourcePatch", skin.getSkinResourcePatch().getBytes(StandardCharsets.UTF_8))
-                .putByteArray("GeometryData", skin.getGeometryData().getBytes(StandardCharsets.UTF_8))
-                .putByteArray("AnimationData", skin.getAnimationData().getBytes(StandardCharsets.UTF_8))
-                .putBoolean("PremiumSkin", skin.isPremium())
-                .putBoolean("PersonaSkin", skin.isPersona())
-                .putBoolean("CapeOnClassicSkin", skin.isCapeOnClassic());
-        return skinTag;
     }
 }
