@@ -10,6 +10,7 @@ import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.inventory.InventoryHolder;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.enchantment.Enchantment;
+import cn.nukkit.level.Location;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.level.particle.ExplodeParticle;
 import cn.nukkit.level.particle.HugeExplodeSeedParticle;
@@ -63,7 +64,6 @@ public class MobNPC extends NPC{
         skillTickUpdate();
         noHateHeal();
         SkillDelayUpdate();
-        boundingbox();
         return super.entityBaseTick(tickDiff);
     }
 
@@ -472,6 +472,10 @@ public class MobNPC extends NPC{
                         bullet.scale = (float) readEntityParameters(s[12]);
                     }
                     bullet.spawnToAll();
+                    break;
+                }
+                case "SetSpawn":{
+                    this.spawnPosition = new Location(Double.parseDouble(s[1]),Double.parseDouble(s[2]),Double.parseDouble(s[3]),Double.parseDouble(s[4]),Double.parseDouble(s[5]),getServer().getLevelByName(s[6]));
                     break;
                 }
                 /*

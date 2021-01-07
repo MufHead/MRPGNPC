@@ -7,6 +7,7 @@ import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.EntityHuman;
 import cn.nukkit.entity.data.Skin;
 import cn.nukkit.entity.item.EntityItem;
+import cn.nukkit.entity.projectile.EntityProjectile;
 import cn.nukkit.event.entity.EntityDamageByEntityEvent;
 import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.event.entity.EntityDeathEvent;
@@ -230,6 +231,23 @@ public class NPC extends EntityHuman {
                     this.move(0.0D, this.frontY, 0.0D);
                 } else {
                     this.move(frontX, this.frontY, frontZ);
+                }
+            }
+        }
+        if (enableBox) {
+            for (Entity entity : this.getLevel().getEntities()) {
+                if (!(entity instanceof EntityProjectile)) {
+                    if (this.distance(entity) <= 0.4 * this.scale) {
+                        double x1 = this.x;
+                        double z1 = this.z;
+                        double x2 = entity.x;
+                        double z2 = entity.z;
+                        double xx = x1 - x2;
+                        double zz = z1 - z2;
+                        this.frontX = xx;
+                        this.frontZ = zz;
+                        this.move(this.frontX, frontY, this.frontZ);
+                    }
                 }
             }
         }
@@ -598,11 +616,6 @@ public class NPC extends EntityHuman {
                             entities.add(entity);
                         }
                     }
-                    if (creaturetype != null) {
-                        simplifyTarget(entities, creaturetype, entity);
-                    } else {
-                        simplifyTarget(entities, activeattackcreature, entity);
-                    }
                 }
                 break;
             }
@@ -612,11 +625,6 @@ public class NPC extends EntityHuman {
                         if (this.getHatePool().get(entity) >= figure) {
                             entities.add(entity);
                         }
-                    }
-                    if (creaturetype != null) {
-                        simplifyTarget(entities, creaturetype, entity);
-                    } else {
-                        simplifyTarget(entities, activeattackcreature, entity);
                     }
                 }
                 break;
@@ -629,9 +637,9 @@ public class NPC extends EntityHuman {
                         }
                     }
                     if (creaturetype != null) {
-                        simplifyTarget(entities, creaturetype, entity);
+                        removeUnattractiveCreature(entities,creaturetype);
                     } else {
-                        simplifyTarget(entities, activeattackcreature, entity);
+                        removeUnattractiveCreature(entities,activeattackcreature);
                     }
                 }
                 break;
@@ -648,7 +656,102 @@ public class NPC extends EntityHuman {
         }
         return entities;
     }
-
+    public void removeUnattractiveCreature(List<Entity> entities, List<String> unattractiveCreature) {
+        for (Entity entity : entities) {
+            if (unattractiveCreature != null) {
+                for (String targettype : unattractiveCreature) {
+//Multicharacteristic EntityChoose
+                    if (targettype.contains("|")) {
+                        boolean canBeChoose = true;
+                        String[] types = targettype.split("\\|");
+                        for (String type : types) {
+                            String t = type;
+                            String function = "";
+                            if (type.contains(":")) {
+                                t = type.split(":")[0];
+                                function = type.split(":")[1];
+                            }
+                            switch (t) {
+                                case "Player": {
+                                    if (!(entity instanceof Player)) {
+                                        canBeChoose = false;
+                                    }
+                                    break;
+                                }
+                                case "Mob": {
+                                    if (!(entity instanceof MobNPC)) {
+                                        canBeChoose = false;
+                                    }
+                                    break;
+                                }
+                                case "Camp": {
+                                    if (entity instanceof MobNPC) {
+                                        if (!((MobNPC) entity).getCamp().equals(function)) {
+                                            canBeChoose = false;
+                                        }
+                                    } else {
+                                        canBeChoose = false;
+                                    }
+                                    break;
+                                }
+                                case "Point": {
+                                    if (entity instanceof MobNPC) {
+                                        if (!((MobNPC) entity).getMobFeature().split(":")[((MobNPC) entity).getMobFeature().split(":").length - 1].equals(function)) {
+                                            canBeChoose = false;
+                                        }
+                                    } else {
+                                        canBeChoose = false;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        if (canBeChoose) {
+                            entities.remove(entity);
+                        }
+//Single characteristic EntityChoose
+                    } else {
+                        String type = targettype;
+                        String function = "";
+                        if (targettype.contains(":")) {
+                            type = targettype.split(":")[0];
+                            function = targettype.split(":")[1];
+                        }
+                        switch (type) {
+                            case "Player": {
+                                if (entity instanceof Player) {
+                                    entities.remove(entity);
+                                }
+                                break;
+                            }
+                            case "Mob": {
+                                if (entity instanceof MobNPC) {
+                                    entities.remove(entity);
+                                }
+                                break;
+                            }
+                            case "Camp": {
+                                if (entity instanceof MobNPC) {
+                                    if (((MobNPC) entity).getCamp().equals(function)) {
+                                        entities.remove(entity);
+                                    }
+                                }
+                                break;
+                            }
+                            case "Point": {
+                                if (entity instanceof MobNPC) {
+                                    if (((MobNPC) entity).getMobFeature().split(":")[((MobNPC) entity).getMobFeature().split(":").length - 1].equals(function)) {
+                                        entities.remove(entity);
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     public void removeUnattractiveCreature(ConcurrentHashMap<Entity, Float> map, List<String> unattractiveCreature) {
         for (Entity entity : map.keySet()) {
             if (unattractiveCreature != null) {
@@ -1089,7 +1192,7 @@ public class NPC extends EntityHuman {
             }
         }
         if (this.attackdelayed >= this.attackdelay) {
-            if (distance(target) <= this.attackrange) {
+            if (distance(target)/target.scale <= this.attackrange) {
                 Position position = target.getPosition().clone();
                 float knockback = (float) this.knockback;
                 HashMap<EntityDamageEvent.DamageModifier, Float> damage = new HashMap<>();
@@ -1302,23 +1405,5 @@ public class NPC extends EntityHuman {
                 .replaceAll("npc\\.damage", this.damage + "");
 
         return s;
-    }
-
-    public void boundingbox() {
-        if (enableBox) {
-            for (Entity entity : this.getLevel().getEntities()) {
-                if (this.distance(entity) <= 0.8 * this.scale) {
-                    double x1 = this.x*this.getWidth();
-                    double z1 = this.z*this.getWidth();
-                    double x2 = entity.x*entity.getWidth();
-                    double z2 = entity.z*entity.getWidth();
-                    double xx = x1 - x2;
-                    double zz = z1 - z2;
-                    this.frontX = xx;
-                    this.frontZ = zz;
-                    this.move(this.frontX, frontY, this.frontZ);
-                }
-            }
-        }
     }
 }
