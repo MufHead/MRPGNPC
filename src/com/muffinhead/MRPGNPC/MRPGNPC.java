@@ -241,6 +241,7 @@ public class MRPGNPC extends PluginBase {
         config.set("HitRange",0.15);
         config.set("NoHatesHeal", "200:1.0");
         config.set("CanBeKnockBack", false);
+        config.set("BoudningBox",true);
         config.set("DeathCommands", new ArrayList<>());
         config.set("Skin", "GreenCross");
         config.set("ItemInHand", "267:0");
@@ -320,6 +321,7 @@ public class MRPGNPC extends PluginBase {
                     npc.setDrops(config.getList("Drops"));
                     npc.setSkinname(config.getString("Skin"));
                     npc.setSkin(skins.get(config.getString("Skin")));
+                    npc.setEnableBox(config.getBoolean("BoundingBox"));
                     MobNPC.sendSkinChangePacket(npc);
                     return npc;
                 }
@@ -355,6 +357,7 @@ public class MRPGNPC extends PluginBase {
                 npc.setDrops(config.getList("Drops"));
                 npc.setSkinname(config.getString("Skin"));
                 npc.setSkin(skins.get(config.getString("Skin")));
+                npc.setEnableBox(config.getBoolean("BoundingBox"));
                 MobNPC.sendSkinChangePacket(npc);
                 return npc;
             }

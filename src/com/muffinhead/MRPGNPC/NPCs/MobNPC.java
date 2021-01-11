@@ -2,6 +2,7 @@ package com.muffinhead.MRPGNPC.NPCs;
 
 import cn.nukkit.Player;
 import cn.nukkit.Server;
+import cn.nukkit.command.CommandSender;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.EntityHuman;
 import cn.nukkit.entity.EntityHumanType;
@@ -380,14 +381,24 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "RunCommand": {
-                    if (s[1].contains("damager.name")) {
+                    if (s[1].equalsIgnoreCase("true")) {
                         getServer().getScheduler().scheduleDelayedTask(new Task() {
                             @Override
                             public void onRun(int i) {
-                                String cmd = recoverString(s[1]);
-                                Server.getInstance().dispatchCommand(getServer().getConsoleSender(), cmd);
+                                String cmd = recoverString(s[2]);
+                                CommandSender sender = MRPGNPC.mrpgnpc.getServer().getConsoleSender();
+                                if (mob.getLastDamageCause() instanceof EntityDamageByEntityEvent){
+                                    if (((EntityDamageByEntityEvent) mob.getLastDamageCause()).getDamager() instanceof CommandSender) {
+                                        sender = (CommandSender) ((EntityDamageByEntityEvent) mob.getLastDamageCause()).getDamager();
+                                    }
+                                }
+                                Server.getInstance().dispatchCommand(sender, cmd);
                             }
-                        },1);
+                        }, 1);
+                    }else{
+                        String cmd = recoverString(s[2]);
+                        CommandSender sender = MRPGNPC.mrpgnpc.getServer().getConsoleSender();
+                        Server.getInstance().dispatchCommand(sender, cmd);
                     }
                     break;
                 }

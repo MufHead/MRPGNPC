@@ -236,17 +236,21 @@ public class NPC extends EntityHuman {
         }
         if (enableBox) {
             for (Entity entity : this.getLevel().getEntities()) {
-                if (!(entity instanceof EntityProjectile)) {
-                    if (this.distance(entity) <= 0.4 * this.scale) {
-                        double x1 = this.x;
-                        double z1 = this.z;
-                        double x2 = entity.x;
-                        double z2 = entity.z;
-                        double xx = x1 - x2;
-                        double zz = z1 - z2;
-                        this.frontX = xx;
-                        this.frontZ = zz;
-                        this.move(this.frontX, frontY, this.frontZ);
+                if (!(entity instanceof EntityProjectile||entity instanceof EntityItem)) {
+                    if (entity instanceof MobNPC&&!((MobNPC) entity).enableBox) {
+
+                    }else {
+                        if (this.distance(entity) <= 0.4 * this.scale) {
+                            double x1 = this.x;
+                            double z1 = this.z;
+                            double x2 = entity.x;
+                            double z2 = entity.z;
+                            double xx = x1 - x2;
+                            double zz = z1 - z2;
+                            this.frontX = xx;
+                            this.frontZ = zz;
+                            this.move(this.frontX, frontY, this.frontZ);
+                        }
                     }
                 }
             }
