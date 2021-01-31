@@ -1,6 +1,7 @@
 package com.muffinhead.MRPGNPC;
 
 import cn.nukkit.Player;
+import cn.nukkit.Server;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
 import cn.nukkit.entity.Entity;
@@ -139,6 +140,18 @@ public class MRPGNPC extends PluginBase {
                         }
                     }
                     return false;
+                }
+                case "test": {
+                    if (sender instanceof Player) {
+                        Location spawnLocation = ((Player) sender).getLocation();
+                        String mobfile = "测试A号";
+                        String mobFeature = "MDungeon" + ":" + mobfile + ":" + "" + ":" + 0;
+                        MobNPC npc = MRPGNPC.mrpgnpc.spawnNPC(Server.getInstance().getConsoleSender(), mobfile, spawnLocation, mobFeature);
+                        npc.getActiveattackcreature().add("MDungeon");
+                        npc.getUnattractivecreature().add("NotMDungeon");
+                        npc.spawnToAll();
+                        return true;
+                    }
                 }
                 case "point": {
                     if (args.length <= 1) return false;

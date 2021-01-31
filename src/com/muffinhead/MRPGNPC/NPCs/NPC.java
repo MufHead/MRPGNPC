@@ -320,6 +320,7 @@ public class NPC extends EntityHuman {
         if (this.target != null && this.target.distance((Vector3) this) > this.haterange) {
             this.target = null;
         }
+
     }
 
     public boolean checkIsWallFront() {
@@ -714,6 +715,52 @@ public class NPC extends EntityHuman {
                                     }
                                     break;
                                 }
+                                case "MDungeon": {
+                                    if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
+                                        if (this.mobFeature.split(":")[0].equals("MDungeon")) {
+                                            Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
+                                            if (entity instanceof Player){
+                                                if (DataPacketLimit.limitPlayers.containsKey(entity.getId())){
+                                                    if (DataPacketLimit.limitPlayers.get(entity.getId())!=roomid){
+                                                        canBeChoose = false;
+                                                    }
+                                                }
+                                            }else{
+                                                if (DataPacketLimit.limitEntities.containsKey(entity.getId())){
+                                                    if (DataPacketLimit.limitEntities.get(entity.getId())!=roomid){
+                                                        canBeChoose = false;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                                case "NotMDungeon": {
+                                    if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
+                                        if (this.mobFeature.split(":")[0].equals("MDungeon")) {
+                                            Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
+                                            if (entity instanceof Player){
+                                                if (DataPacketLimit.limitPlayers.containsKey(entity.getId())){
+                                                    if (DataPacketLimit.limitPlayers.get(entity.getId())==roomid){
+                                                        canBeChoose = false;
+                                                    }
+                                                }else{
+                                                    canBeChoose = false;
+                                                }
+                                            }else{
+                                                if (DataPacketLimit.limitEntities.containsKey(entity.getId())){
+                                                    if (DataPacketLimit.limitEntities.get(entity.getId())==roomid){
+                                                        canBeChoose = false;
+                                                    }
+                                                }else{
+                                                    canBeChoose = false;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
                             }
                         }
                         if (canBeChoose) {
@@ -752,6 +799,52 @@ public class NPC extends EntityHuman {
                                 if (entity instanceof MobNPC) {
                                     if (((MobNPC) entity).getMobFeature().split(":")[((MobNPC) entity).getMobFeature().split(":").length - 1].equals(function)) {
                                         entities.remove(entity);
+                                    }
+                                }
+                                break;
+                            }
+                            case "MDungeon": {
+                                if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
+                                    if (this.mobFeature.split(":")[0].equals("MDungeon")) {
+                                        Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
+                                        if (entity instanceof Player){
+                                            if (DataPacketLimit.limitPlayers.containsKey(entity.getId())){
+                                                if (DataPacketLimit.limitPlayers.get(entity.getId())==roomid){
+                                                    entities.remove(entity);
+                                                }
+                                            }
+                                        }else{
+                                            if (DataPacketLimit.limitEntities.containsKey(entity.getId())){
+                                                if (DataPacketLimit.limitEntities.get(entity.getId())==roomid){
+                                                    entities.remove(entity);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                            case "NotMDungeon": {
+                                if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
+                                    if (this.mobFeature.split(":")[0].equals("MDungeon")) {
+                                        Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
+                                        if (entity instanceof Player){
+                                            if (DataPacketLimit.limitPlayers.containsKey(entity.getId())){
+                                                if (DataPacketLimit.limitPlayers.get(entity.getId())!=roomid){
+                                                    entities.remove(entity);
+                                                }
+                                            }else{
+                                                entities.remove(entity);
+                                            }
+                                        }else{
+                                            if (DataPacketLimit.limitEntities.containsKey(entity.getId())){
+                                                if (DataPacketLimit.limitEntities.get(entity.getId())!=roomid){
+                                                    entities.remove(entity);
+                                                }
+                                            }else{
+                                                entities.remove(entity);
+                                            }
+                                        }
                                     }
                                 }
                                 break;
@@ -831,21 +924,25 @@ public class NPC extends EntityHuman {
                                     }
                                     break;
                                 }
-                                case "NotMdungeon": {
+                                case "NotMDungeon": {
                                     if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
                                         if (this.mobFeature.split(":")[0].equals("MDungeon")) {
                                             Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
                                             if (entity instanceof Player){
                                                 if (DataPacketLimit.limitPlayers.containsKey(entity.getId())){
-                                                    if (DataPacketLimit.limitPlayers.get(entity.getId())==roomid){
-                                                        canBeChoose = false;
+                                                    if (DataPacketLimit.limitPlayers.get(entity.getId())!=roomid){
+                                                        map.remove(entity);
                                                     }
+                                                }else{
+                                                    map.remove(entity);
                                                 }
                                             }else{
                                                 if (DataPacketLimit.limitEntities.containsKey(entity.getId())){
-                                                    if (DataPacketLimit.limitEntities.get(entity.getId())==roomid){
-                                                        canBeChoose = false;
+                                                    if (DataPacketLimit.limitEntities.get(entity.getId())!=roomid){
+                                                        map.remove(entity);
                                                     }
+                                                }else{
+                                                    map.remove(entity);
                                                 }
                                             }
                                         }
@@ -915,7 +1012,7 @@ public class NPC extends EntityHuman {
                                 }
                                 break;
                             }
-                            case "NotMdungeon": {
+                            case "NotMDungeon": {
                                 if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
                                     if (this.mobFeature.split(":")[0].equals("MDungeon")) {
                                         Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
@@ -924,12 +1021,16 @@ public class NPC extends EntityHuman {
                                                 if (DataPacketLimit.limitPlayers.get(entity.getId())!=roomid){
                                                     map.remove(entity);
                                                 }
+                                            }else{
+                                                map.remove(entity);
                                             }
                                         }else{
                                             if (DataPacketLimit.limitEntities.containsKey(entity.getId())){
                                                 if (DataPacketLimit.limitEntities.get(entity.getId())!=roomid){
                                                     map.remove(entity);
                                                 }
+                                            }else{
+                                                map.remove(entity);
                                             }
                                         }
                                     }
@@ -1011,7 +1112,7 @@ public class NPC extends EntityHuman {
                                 }
                                 break;
                             }
-                            case "NotMdungeon": {
+                            case "NotMDungeon": {
                                 if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
                                     if (this.mobFeature.split(":")[0].equals("MDungeon")) {
                                         Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
@@ -1101,7 +1202,7 @@ public class NPC extends EntityHuman {
                             }
                             break;
                         }
-                        case "NotMdungeon": {
+                        case "NotMDungeon": {
                             if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
                                 if (this.mobFeature.split(":")[0].equals("MDungeon")) {
                                     Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
