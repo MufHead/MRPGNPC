@@ -322,7 +322,6 @@ public class MRPGNPC extends PluginBase {
                     npc.setSkinname(config.getString("Skin"));
                     npc.setSkin(skins.get(config.getString("Skin")));
                     npc.setEnableBox(config.getBoolean("BoundingBox"));
-                    MobNPC.sendSkinChangePacket(npc);
                     return npc;
                 }
             }
@@ -358,7 +357,6 @@ public class MRPGNPC extends PluginBase {
                 npc.setSkinname(config.getString("Skin"));
                 npc.setSkin(skins.get(config.getString("Skin")));
                 npc.setEnableBox(config.getBoolean("BoundingBox"));
-                MobNPC.sendSkinChangePacket(npc);
                 return npc;
             }
         }

@@ -14,6 +14,7 @@ import cn.nukkit.event.entity.EntityDeathEvent;
 import cn.nukkit.event.player.PlayerDeathEvent;
 import cn.nukkit.event.player.PlayerToggleSneakEvent;
 import cn.nukkit.item.Item;
+import cn.nukkit.level.Level;
 import cn.nukkit.level.Position;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.level.particle.DestroyBlockParticle;
@@ -31,6 +32,9 @@ import cn.nukkit.network.protocol.SetEntityLinkPacket;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.scheduler.Task;
 import com.muffinhead.MRPGNPC.MRPGNPC;
+import com.muffinhead.mdungeon.DataPacketLimit;
+import com.muffinhead.mdungeon.MDungeon;
+import com.muffinhead.mdungeon.Room;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -40,6 +44,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static java.lang.Integer.parseInt;
 
 
 public class NPC extends EntityHuman {
@@ -804,6 +810,27 @@ public class NPC extends EntityHuman {
                                     }
                                     break;
                                 }
+                                case "MDungeon": {
+                                    if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
+                                        if (this.mobFeature.split(":")[0].equals("MDungeon")) {
+                                            Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
+                                            if (entity instanceof Player){
+                                                if (DataPacketLimit.limitPlayers.containsKey(entity.getId())){
+                                                    if (DataPacketLimit.limitPlayers.get(entity.getId())!=roomid){
+                                                        canBeChoose = false;
+                                                    }
+                                                }
+                                            }else{
+                                                if (DataPacketLimit.limitEntities.containsKey(entity.getId())){
+                                                    if (DataPacketLimit.limitEntities.get(entity.getId())!=roomid){
+                                                        canBeChoose = false;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
                             }
                         }
                         if (canBeChoose) {
@@ -897,6 +924,27 @@ public class NPC extends EntityHuman {
                                     }
                                 } else {
                                     canBeChoose = false;
+                                }
+                                break;
+                            }
+                            case "MDungeon": {
+                                if (getServer().getPluginManager().getPlugin("MDungeon")!=null) {
+                                    if (this.mobFeature.split(":")[0].equals("MDungeon")) {
+                                        Long roomid = Long.valueOf(this.mobFeature.split(":")[this.mobFeature.split(":").length - 1]);
+                                        if (entity instanceof Player){
+                                            if (DataPacketLimit.limitPlayers.containsKey(entity.getId())){
+                                                if (DataPacketLimit.limitPlayers.get(entity.getId())!=roomid){
+                                                    canBeChoose = false;
+                                                }
+                                            }
+                                        }else{
+                                            if (DataPacketLimit.limitEntities.containsKey(entity.getId())){
+                                                if (DataPacketLimit.limitEntities.get(entity.getId())!=roomid){
+                                                    canBeChoose = false;
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                                 break;
                             }
@@ -1085,6 +1133,10 @@ public class NPC extends EntityHuman {
         this.activeattackcreature = activeattackcreature;
     }
 
+    public List<String> getActiveattackcreature() {
+        return activeattackcreature;
+    }
+
     public List<String> getUnattractivecreature() {
         return unattractivecreature;
     }
@@ -1132,59 +1184,38 @@ public class NPC extends EntityHuman {
     public List<String> getSkills() {
         return skills;
     }
-
-    public void spawnTo(Player player) {
-        if (player.isLoaderActive()) {
-            if (Long.valueOf(this.getId()) == null) {
-                this.id = Entity.entityCount++;
-            }
-            if (skin == null) {
-                this.setSkin(MRPGNPC.skins.get(skinname));
-            }
-            try {
-                this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getName(), this.getSkin(), new Player[]{player});
-            } catch (Exception ignored) {
-
-            }
-            if (!this.hasSpawned.containsKey(player.getLoaderId())) {
-                this.hasSpawned.put(player.getLoaderId(), player);
-
-                PlayerSkinPacket packet = new PlayerSkinPacket();
-                packet.uuid = this.uuid;
-                packet.newSkinName = "";
-                packet.oldSkinName = "";
-                packet.skin = this.skin;
-                AddPlayerPacket pk = new AddPlayerPacket();
-                pk.uuid = this.getUniqueId();
-                pk.username = this.getName();
-                pk.entityUniqueId = this.getId();
-                pk.entityRuntimeId = this.getId();
-                pk.x = (float) this.x;
-                pk.y = (float) this.y;
-                pk.z = (float) this.z;
-                pk.speedX = (float) this.motionX;
-                pk.speedY = (float) this.motionY;
-                pk.speedZ = (float) this.motionZ;
-                pk.yaw = (float) this.yaw;
-                pk.pitch = (float) this.pitch;
-                pk.item = this.getInventory().getItemInHand();
-                pk.metadata = this.dataProperties;
-                player.dataPacket(packet);
-                player.dataPacket(pk);
-                this.inventory.sendArmorContents(player);
-                this.offhandInventory.sendContents(player);
-                if (this.riding != null) {
-                    SetEntityLinkPacket pkk = new SetEntityLinkPacket();
-                    pkk.vehicleUniqueId = this.riding.getId();
-                    pkk.riderUniqueId = this.getId();
-                    pkk.type = 1;
-                    pkk.immediate = 1;
-                    player.dataPacket(pkk);
+/*
+    @Override
+    public void spawnToAll() {
+        if (this.chunk != null && !this.closed) {
+            Iterator var1 = this.level.getChunkPlayers(this.chunk.getX(), this.chunk.getZ()).values().iterator();
+            while(var1.hasNext()) {
+                Player player = (Player)var1.next();
+                if (player.isOnline()) {
+                    this.spawnTo(player);
                 }
-                this.server.removePlayerListData(this.getUniqueId(), new Player[]{player});
             }
         }
     }
+
+    public void spawnTo(Player player) {
+        if (!this.hasSpawned.containsKey(player.getLoaderId()) && this.chunk != null && player.usedChunks.containsKey(Level.chunkHash(this.chunk.getX(), this.chunk.getZ()))) {
+            this.hasSpawned.put(player.getLoaderId(), player);
+            player.dataPacket(this.createAddEntityPacket());
+        }
+
+        if (this.riding != null) {
+            this.riding.spawnTo(player);
+            SetEntityLinkPacket pkk = new SetEntityLinkPacket();
+            pkk.vehicleUniqueId = this.riding.getId();
+            pkk.riderUniqueId = this.getId();
+            pkk.type = 1;
+            pkk.immediate = 1;
+            player.dataPacket(pkk);
+        }
+    }
+
+ */
 
     //attack method
     public void attackEntity(Entity target) {
@@ -1409,5 +1440,51 @@ public class NPC extends EntityHuman {
                 .replaceAll("npc\\.damage", this.damage + "");
 
         return s;
+    }
+    public void spawnTo(Player player) {
+        if (player.isLoaderActive()) {
+            if (Long.valueOf(this.getId()) == null) {
+                this.id = Entity.entityCount++;
+            }
+            if (!this.hasSpawned.containsKey(player.getLoaderId())) {
+                this.hasSpawned.put(player.getLoaderId(), player);
+                if (this.skin == null) {
+                    this.skin = MRPGNPC.skins.get(skinname);
+                }
+                PlayerSkinPacket packet = new PlayerSkinPacket();
+                packet.uuid = this.uuid;
+                packet.newSkinName = "";
+                packet.oldSkinName = "";
+                packet.skin = this.skin;
+                AddPlayerPacket pk = new AddPlayerPacket();
+                pk.uuid = this.getUniqueId();
+                pk.username = this.getName();
+                pk.entityUniqueId = this.getId();
+                pk.entityRuntimeId = this.getId();
+                pk.x = (float) this.x;
+                pk.y = (float) this.y;
+                pk.z = (float) this.z;
+                pk.speedX = (float) this.motionX;
+                pk.speedY = (float) this.motionY;
+                pk.speedZ = (float) this.motionZ;
+                pk.yaw = (float) this.yaw;
+                pk.pitch = (float) this.pitch;
+                pk.item = this.getInventory().getItemInHand();
+                pk.metadata = this.dataProperties;
+                player.dataPacket(packet);
+                player.dataPacket(pk);
+                this.inventory.sendArmorContents(player);
+                this.offhandInventory.sendContents(player);
+                if (this.riding != null) {
+                    SetEntityLinkPacket pkk = new SetEntityLinkPacket();
+                    pkk.vehicleUniqueId = this.riding.getId();
+                    pkk.riderUniqueId = this.getId();
+                    pkk.type = 1;
+                    pkk.immediate = 1;
+                    player.dataPacket(pkk);
+                }
+                this.server.removePlayerListData(this.getUniqueId(), new Player[]{player});
+            }
+        }
     }
 }

@@ -68,6 +68,7 @@ public class MobNPC extends NPC{
         return super.entityBaseTick(tickDiff);
     }
 
+
     public void SkillDelayUpdate(){
         SkillDelay--;
     }
@@ -78,7 +79,7 @@ public class MobNPC extends NPC{
             String condition = skillandcondition.split(":")[1];
             String skill = skillandcondition.split(":")[2];
             if (!skillTick.containsKey(condition+":"+skill)) {
-                skillTick.put(condition+":"+skill, 0);
+                skillTick.put(condition+":"+skill, Integer.parseInt(condition.split("~")[1]));
             }
             if (skillTick.get(condition+":"+skill) <= 0) {
                 readSkill(skill);
@@ -163,14 +164,18 @@ public class MobNPC extends NPC{
     }
 
     public void noHateHeal(){
-        String[] lbhealthing = nohatesheal.split(":");
-        if (this.nhhealtick >= Integer.parseInt(lbhealthing[0])) {
-            this.heal((float) Double.parseDouble(lbhealthing[1]));
-        }
-        if (this.target != null) {
-            nhhealtick = 0;
-        } else {
-            nhhealtick++;
+        try {
+            String[] lbhealthing = nohatesheal.split(":");
+            if (this.nhhealtick >= Integer.parseInt(lbhealthing[0])) {
+                this.heal((float) Double.parseDouble(lbhealthing[1]));
+            }
+            if (this.target != null) {
+                nhhealtick = 0;
+            } else {
+                nhhealtick++;
+            }
+        } catch (NumberFormatException ignored) {
+
         }
     }
 
@@ -540,5 +545,15 @@ public class MobNPC extends NPC{
     public static String getReplacedText(String num) {
         num = num.replaceAll("\\d+","").replaceAll("\\.","");
         return num;
+    }
+
+    @Override
+    public void despawnFrom(Player player) {
+        super.despawnFrom(player);
+    }
+
+    @Override
+    public void close() {
+        super.close();
     }
 }

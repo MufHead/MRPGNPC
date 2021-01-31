@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="MDungeon">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../MDungeon/out/artifacts/MDungeon/MDungeon.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

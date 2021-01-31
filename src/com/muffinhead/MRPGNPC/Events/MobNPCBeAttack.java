@@ -4,6 +4,7 @@ import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.command.ConsoleCommandSender;
 import cn.nukkit.entity.Entity;
+import cn.nukkit.entity.EntityHuman;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.EventPriority;
 import cn.nukkit.event.Listener;
@@ -11,6 +12,7 @@ import cn.nukkit.event.entity.EntityDamageByChildEntityEvent;
 import cn.nukkit.event.entity.EntityDamageByEntityEvent;
 import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.event.entity.EntityDeathEvent;
+import cn.nukkit.event.level.ChunkUnloadEvent;
 import cn.nukkit.event.player.PlayerDeathEvent;
 import cn.nukkit.math.Vector3;
 import com.muffinhead.MRPGNPC.Effects.Bullet;
@@ -195,14 +197,14 @@ public class MobNPCBeAttack implements Listener {
         //runCommand part
         if (isMulti) {
             if (finalCommand.contains("{all.damagers.name}")) {
-                for (Entity player : damagers) {
+                for (Entity player : npc.getDamagePool().keySet()) {
                     if (player instanceof Player) {
                         Server.getInstance().dispatchCommand(sender, finalCommand.replaceAll("\\{all\\.damagers\\.name}", player.getName()));
                     }
                 }
             }
             if (finalCommand.contains("{all.haters.name}")) {
-                for (Entity player : haters) {
+                for (Entity player : npc.getHatePool().keySet()) {
                     if (player instanceof Player) {
                         Server.getInstance().dispatchCommand(sender, finalCommand.replaceAll("\\{all\\.haters\\.name}", player.getName()));
                     }
@@ -218,6 +220,15 @@ public class MobNPCBeAttack implements Listener {
         if (bullet instanceof Bullet){
             event.setKnockBack(((Bullet) bullet).knockback);
             event.setDamage(((Bullet) bullet).damage);
+        }
+    }
+    @EventHandler
+    public void onUnChunk(ChunkUnloadEvent paramChunkUnloadEvent) {
+        for (Map.Entry localEntry : paramChunkUnloadEvent.getChunk().getEntities().entrySet()) {
+            Entity localEntity = (Entity)localEntry.getValue();
+            if (localEntity instanceof NPC) {
+                paramChunkUnloadEvent.setCancelled(true);
+            }
         }
     }
 }

@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AutoSpawn extends Task {
     protected ConcurrentHashMap<String,Integer> spawnTick = new ConcurrentHashMap<>();
-
+    public static ConcurrentHashMap<String,Integer> mobAmount = new ConcurrentHashMap<>();
     @Override
     public void onRun(int i) {
         //spawntick
@@ -29,29 +29,30 @@ public class AutoSpawn extends Task {
         }
 
         //spawn
-        for (Config config:MRPGNPC.pointconfigs.values()){
+        for (Config config:MRPGNPC.pointconfigs.values()) {
             //spawnpoint position
 
-            if (!MRPGNPC.mrpgnpc.getServer().loadLevel(config.getString("PointPosition").split(":")[3])){
+            if (!MRPGNPC.mrpgnpc.getServer().loadLevel(config.getString("PointPosition").split(":")[3])) {
                 System.out.println("level " + config.getString("PointPosition").split(":")[3] + " is not exist");
-            }else {
+            } else {
             }
             Location location = new Location();
             location.x = Double.parseDouble(config.getString("PointPosition").split(":")[0]);
             location.y = Double.parseDouble(config.getString("PointPosition").split(":")[1]);
             location.z = Double.parseDouble(config.getString("PointPosition").split(":")[2]);
             location.level = MRPGNPC.mrpgnpc.getServer().getLevelByName(config.getString("PointPosition").split(":")[3]);
-            if (config.getString("PointPosition").split(":").length>4) {
+            if (config.getString("PointPosition").split(":").length > 4) {
                 location.yaw = Double.parseDouble(config.getString("PointPosition").split(":")[4]);
                 location.pitch = Double.parseDouble(config.getString("PointPosition").split(":")[5]);
             }
             //mobs spawnlist and limit
             List<String> spawnlist = config.getList("SpawnList");
-            for (String spawns:spawnlist){
+            for (String spawns : spawnlist) {
      /*
     mobfilename-respawntick-1timespawnamount-maxamount-spawnlimit
-     */
-                String mobFeature = spawns+":"+config.getString("PointName");
+      */
+                String pointname = config.getString("PointName");
+                String mobFeature = spawns + ":" + pointname;
                 String mobfile = spawns.split(":")[0];
                 int respawntick = Integer.parseInt(spawns.split(":")[1]);
                 int amountOneTime = Integer.parseInt(spawns.split(":")[2]);
@@ -60,51 +61,58 @@ public class AutoSpawn extends Task {
                 if (!spawnTick.containsKey(mobFeature)) {
                     spawnTick.put(mobFeature, 0);
                 }
-                if (spawns.split(":").length>=5) {
+                if (spawns.split(":").length >= 5) {
                     String spawnlimit = spawns.split(":")[4];
                     if (spawnlimit.contains("-")) {
                         for (String limit : spawnlimit.split("-")) {
-                            canSpawn = onCheckSpawnLimit(limit,location);
+                            canSpawn = onCheckSpawnLimit(limit, location);
                         }
-                    }else{
-                        canSpawn = onCheckSpawnLimit(spawnlimit,location);
+                    } else {
+                        canSpawn = onCheckSpawnLimit(spawnlimit, location);
                     }
                 }
                 //respawntick limit
-                if (spawnTick.get(mobFeature)<respawntick){
+                if (spawnTick.get(mobFeature) < respawntick) {
                     canSpawn = false;
                 }
                 //respawntick limit
 
 
                 //maxmob limit
-                int mobamount = 0;
-                if (MRPGNPC.mrpgnpc.getServer().isLevelLoaded(config.getString("PointPosition").split(":")[3])){
+                if (MRPGNPC.mrpgnpc.getServer().isLevelLoaded(config.getString("PointPosition").split(":")[3])) {
                     MRPGNPC.mrpgnpc.getServer().loadLevel(config.getString("PointPosition").split(":")[3]);
                 }
-                for (Entity entity:location.level.getEntities()){
+                mobAmount.put(pointname, 0);
+                for (Entity entity : location.level.getEntities()) {
                     if (entity instanceof MobNPC) {
                         if (((MobNPC) entity).getMobFeature() != null) {
                             if (((MobNPC) entity).getMobFeature().equals(mobFeature)) {
-                                mobamount++;
+                                mobAmount.put(pointname, mobAmount.get(pointname) + 1);
                             }
                         }
                     }
                 }
-                if (mobamount>=maxamount){
+                if (mobAmount.get(pointname) >= maxamount) {
                     canSpawn = false;
                 }
                 //maxmob limit
-                if (canSpawn){
+                if (canSpawn) {
                     int spawnamount = amountOneTime;
-                    if (mobamount+amountOneTime>maxamount){
-                        spawnamount = maxamount-mobamount;
+                    if (mobAmount.get(pointname) + amountOneTime > maxamount) {
+                        spawnamount = maxamount - mobAmount.get(pointname);
                     }
-                    for (int t = 0;t<spawnamount;t++) {
-                        MobNPC npc = MRPGNPC.mrpgnpc.spawnNPC(MRPGNPC.mrpgnpc.getServer().getConsoleSender(), mobfile, location, mobFeature);
-                        npc.spawnToAll();
+                    for (int t = 0; t < spawnamount; t++) {
+                        try {
+                            MobNPC npc = MRPGNPC.mrpgnpc.spawnNPC(MRPGNPC.mrpgnpc.getServer().getConsoleSender(), mobfile, location, mobFeature);
+                            npc.spawnToAll();
+                        } catch (Exception e) {
+                            System.out.println("Spawn Wrong！");
+                            System.out.println("MobFile"+mobfile);
+                            System.out.println("Location"+location);
+                            System.out.println("MobFeature"+mobFeature);
+                        }
                     }
-                    spawnTick.put(mobFeature,0);
+                    spawnTick.put(mobFeature, 0);
                 }
             }
         }
