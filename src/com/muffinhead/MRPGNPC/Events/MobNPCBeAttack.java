@@ -50,6 +50,15 @@ public class MobNPCBeAttack implements Listener {
                 //checkbedamagedcd
                 onCheckCanEntityAttack((EntityDamageByEntityEvent) event);
                 //checkbedamagedcd
+
+                //shield
+                if (onCheckShield(((MobNPC) entity))){
+                    if (!checkShieldWillHurtHealth(((MobNPC) entity))){
+                        event.setCancelled();
+                    }
+                    onReduceShield(((MobNPC) entity),event);
+                }
+                //shield
                 //cant attractive target can't damage npc
                 if (!event.isCancelled()) {
                     ConcurrentHashMap<Entity, Float> damagepool = ((MobNPC) entity).getDamagePool();
@@ -76,6 +85,31 @@ public class MobNPCBeAttack implements Listener {
                 //prevent mob's in poison or some effect that player can't hurt mobnpc.
             }
         }
+    }
+
+    public boolean onCheckShield(MobNPC mobNPC){
+        if (mobNPC.status.containsKey("Shield")){
+            float value = Float.parseFloat(((ConcurrentHashMap)mobNPC.status.get("Shield")).get("Value").toString());
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public static void onReduceShield(MobNPC mobNPC,EntityDamageEvent event){
+        float value = Float.parseFloat(((ConcurrentHashMap)mobNPC.status.get("Shield")).get("Value").toString());
+        ((ConcurrentHashMap)mobNPC.status.get("Shield")).put("Value",value-event.getFinalDamage());
+        value = Float.parseFloat(((ConcurrentHashMap)mobNPC.status.get("Shield")).get("Value").toString());
+        if (value<=0){
+            int willStopActTick = Integer.parseInt(((ConcurrentHashMap)mobNPC.status.get("Shield")).get("willStopAct").toString());
+            mobNPC.status.put("Stop",willStopActTick);
+            mobNPC.status.put("ShieldBreak",((ConcurrentHashMap)mobNPC.status.get("Shield")).get("shieldBreak"));
+            mobNPC.status.remove("Shield");
+        }
+    }
+
+    public boolean checkShieldWillHurtHealth(MobNPC mobNPC){
+        return Boolean.parseBoolean((((ConcurrentHashMap)mobNPC.status.get("Shield")).get("canHurtHealth").toString()));
     }
 
     public void KnockBackNPC(MobNPC npc,EntityDamageByEntityEvent event) {

@@ -8,18 +8,18 @@ import cn.nukkit.entity.EntityHuman;
 import cn.nukkit.entity.EntityHumanType;
 import cn.nukkit.event.entity.EntityDamageByEntityEvent;
 import cn.nukkit.event.entity.EntityDamageEvent;
-import cn.nukkit.inventory.InventoryHolder;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.Location;
+import cn.nukkit.level.ParticleEffect;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.level.particle.ExplodeParticle;
 import cn.nukkit.level.particle.HugeExplodeSeedParticle;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.math.Vector3f;
 import cn.nukkit.nbt.tag.CompoundTag;
-import cn.nukkit.network.protocol.AnimatePacket;
-import cn.nukkit.network.protocol.PlayerActionPacket;
 import cn.nukkit.network.protocol.PlayerSkinPacket;
+import cn.nukkit.network.protocol.SpawnParticleEffectPacket;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.scheduler.Task;
 import cn.nukkit.utils.Config;
@@ -27,11 +27,6 @@ import com.muffinhead.MRPGNPC.Effects.Bullet;
 import com.muffinhead.MRPGNPC.Effects.Lightning;
 import com.muffinhead.MRPGNPC.MRPGNPC;
 
-import java.awt.im.InputContext;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,24 +42,39 @@ public class MobNPC extends NPC{
 
     public ConcurrentHashMap<String, Integer> skillTick = new ConcurrentHashMap<>();
 
+    public boolean isStop() {
+        if (!status.containsKey("Stop")) {
+            return false;
+        }else{
+            status.put("Stop",Integer.parseInt(status.get("Stop").toString())-1);
+            if (Integer.parseInt(status.get("Stop").toString())<=0){
+                status.remove("Stop");
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Override
     public boolean entityBaseTick(int tickDiff) {
-        checkTargetCanBeChoose();
-        checkPlayerIsAttractive();
-        updateDisplayName();
-        bedamagedcdCheck();
-        if (target == null) {
-            this.target = this.getTarget();
-        }
-        onMove();
-        if (this.target != null) {
-            attackEntity(this.target);
+        if (!isStop()) {
+            if (target == null) {
+                this.target = this.getTarget();
+            }
+            onMove();
+            if (this.target != null) {
+                attackEntity(this.target);
+            }
         }
         tickSkillRun();
         healthSkillRun();
         skillTickUpdate();
         noHateHeal();
         SkillDelayUpdate();
+        checkTargetCanBeChoose();
+        checkPlayerIsAttractive();
+        updateDisplayName();
+        bedamagedcdCheck();
         return super.entityBaseTick(tickDiff);
     }
 
@@ -123,28 +133,28 @@ public class MobNPC extends NPC{
                 case "<":
                     if (this.getHealth() < health) {
                         readSkill(skill);
-                        this.getSkills().remove(skillandcondition);
+                        skills.remove(skillandcondition);
                     }
                     break;
                 case "＜=":
                 case "<=":
                     if (this.getHealth() <= health) {
                         readSkill(skill);
-                        this.getSkills().remove(skillandcondition);
+                        skills.remove(skillandcondition);
                     }
                     break;
                 case "＞":
                 case ">":
                     if (this.getHealth() > health) {
                         readSkill(skill);
-                        this.getSkills().remove(skillandcondition);
+                        skills.remove(skillandcondition);
                     }
                     break;
                 case "＞=":
                 case ">=":
                     if (this.getHealth() >= health) {
                         readSkill(skill);
-                        this.getSkills().remove(skillandcondition);
+                        skills.remove(skillandcondition);
                     }
                     break;
             }
@@ -181,10 +191,9 @@ public class MobNPC extends NPC{
 
 
     public List<String> GetNPCSkills(MobNPC npc,String type){
-        List<String> skills = npc.getSkills();
         List<String> finalskills = new ArrayList<>();
-        if (skills!=null){
-            for (String skillandcondition:skills){
+        if (npc.skills!=null){
+            for (String skillandcondition:npc.skills){
                 String prob = skillandcondition.split(":")[0];
                 String condition = skillandcondition.split(":")[1];
                 String skill = skillandcondition.split(":")[2];
@@ -200,14 +209,16 @@ public class MobNPC extends NPC{
 
     @Override
     public boolean attack(EntityDamageEvent source) {
-        if (source.getEntity() == this){
-            if (!source.isCancelled()){
-                beDamagedSkillRun();
+        if (!isStop()) {
+            if (source.getEntity() == this) {
+                if (!source.isCancelled()) {
+                    beDamagedSkillRun();
+                }
             }
-        }
-        if (source instanceof EntityDamageByEntityEvent){
-            if (((EntityDamageByEntityEvent) source).getDamager()==this){
-                damageSkillRun();
+            if (source instanceof EntityDamageByEntityEvent) {
+                if (((EntityDamageByEntityEvent) source).getDamager() == this) {
+                    damageSkillRun();
+                }
             }
         }
         return super.attack(source);
@@ -332,6 +343,21 @@ public class MobNPC extends NPC{
                     }
                     break;
                 }
+                case "Title": {
+                    List<Entity> entities = MobNPC.this.getTargets(s[1].split("-"));
+                    String title = s[2];
+                    String subTitle = s[3];
+                    for (Entity entity : entities) {
+                        if (!(entity == null)) {
+                            if (entity instanceof Player) {
+                                title = recoverString(title);
+                                subTitle = recoverString(subTitle);
+                                ((Player) entity).sendTitle(title,subTitle);
+                            }
+                        }
+                    }
+                    break;
+                }
                 case "HugeExplode":{
                     double x = readEntityParameters(s[1]);
                     double y = readEntityParameters(s[2]);
@@ -443,8 +469,12 @@ public class MobNPC extends NPC{
                     mob.setAttackdelay(speed);
                     break;
                 }
+                case "ChangeDefenseFormula": {
+                    String defenseFormula = s[1];
+                    this.defenseformula = defenseFormula;
+                    break;
+                }
                 case "InsertSkill": {
-                    List<String> skills = mob.getSkills();
                     String skill = "";
                     for (int i = 1;i<s.length;i++){
                         skill = skill+s[i];
@@ -454,7 +484,6 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "RemoveSkill": {
-                    List<String> skills = mob.getSkills();
                     String skill = "";
                     for (int i = 1;i<s.length;i++){
                         skill = skill+s[i];
@@ -470,6 +499,21 @@ public class MobNPC extends NPC{
                 }
                 case "Action":{
                     broadcastEntityEvent(Integer.parseInt(s[1]));
+                    break;
+                }
+                case "CheckStatus":{
+                    String statusName = s[1];
+                    String skillName1 = s[2];
+                    String skillName2 = s[3];
+                    if (status.containsKey(statusName)){
+                        if (!skillName1.equals("")) {
+                            readSkill(skillName1);
+                        }
+                    }else{
+                        if (!skillName2.equals("")) {
+                            readSkill(skillName2);
+                        }
+                    }
                     break;
                 }
                 case "Shoot":{
@@ -492,6 +536,77 @@ public class MobNPC extends NPC{
                 }
                 case "SetSpawn":{
                     this.spawnPosition = new Location(Double.parseDouble(s[1]),Double.parseDouble(s[2]),Double.parseDouble(s[3]),Double.parseDouble(s[4]),Double.parseDouble(s[5]),getServer().getLevelByName(s[6]));
+                    break;
+                }
+                case "Shield":{
+                    //amount-canHurtHealth-willStopAct-shieldBreakStatusTick
+                    ConcurrentHashMap<String,Object> shield = new ConcurrentHashMap<>();
+                    shield.put("Value",Float.parseFloat(s[1]));
+                    shield.put("canHurtHealth",s[2]);
+                    shield.put("willStopAct",s[3]);
+                    shield.put("shieldBreak",s[4]);
+                    status.put("Shield",shield);
+                    break;
+                }
+                case "TornadoParticle":{
+                    List<Entity> entities = MobNPC.this.getTargets(s[1].split("-"));
+                    String identifier = s[2];
+                    double turns = Double.parseDouble(s[3]);
+                    double startY = readEntityParameters(s[4]);
+                    double ys = readEntityParameters(s[5]);
+                    double addRadius = readEntityParameters(s[6]);
+                    /*
+                    for (double radius = 0, y = startY, degree = 0; degree < 360 * turns; degree+=10, y += ys, radius += addRadius) {
+                        double radians = Math.toRadians(degree);
+                        double x = radius * Math.cos(radians);
+                        double z = radius * Math.sin(radians);
+                        Vector3f vector = new Vector3f();
+                        vector.x = (float) this.x;
+                        vector.y = (float) this.y;
+                        vector.z = (float) this.z;
+                        vector.add((float) x, (float)y, (float)z);
+                        SpawnParticleEffectPacket pk = new SpawnParticleEffectPacket();
+                        pk.identifier = "minecraft:"+identifier;
+                        pk.position = vector;
+                        pk.dimensionId = this.getLevel().getDimension();
+                        vector.subtract((float) x, (float)y, (float)z);
+                        Server.getInstance().getScheduler().scheduleDelayedTask(MRPGNPC.mrpgnpc,new Task() {
+                            @Override
+                            public void onRun(int i) {
+                                for (Entity entity:entities){
+                                    if (entity instanceof Player){
+                                        ((Player) entity).dataPacket(pk);
+                                    }
+                                }
+                            }
+                        },10);
+                    }*/
+
+                    for (int degree = 0; degree < 360; degree++) {
+                        double radians = Math.toRadians(degree);
+                        double x = Math.cos(radians);
+                        double y = Math.sin(radians);
+                        Vector3f vector = new Vector3f();
+                        vector.x = (float) this.x;
+                        vector.y = (float) this.y;
+                        vector.z = (float) this.z;
+                        vector.add((float) x, 0, (float) y);
+                        SpawnParticleEffectPacket pk = new SpawnParticleEffectPacket();
+                        pk.identifier = "minecraft:"+identifier;
+                        pk.position = vector;
+                        pk.dimensionId = this.getLevel().getDimension();
+                        vector.subtract((float) x, 0, (float) y);
+                        Server.getInstance().getScheduler().scheduleDelayedTask(MRPGNPC.mrpgnpc,new Task() {
+                            @Override
+                            public void onRun(int i) {
+                                for (Entity entity:entities){
+                                    if (entity instanceof Player){
+                                        ((Player) entity).dataPacket(pk);
+                                    }
+                                }
+                            }
+                        },10);
+                    }
                     break;
                 }
                 /*

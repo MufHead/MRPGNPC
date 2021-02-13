@@ -117,9 +117,11 @@ public class NPC extends EntityHuman {
 
     protected List<String> unattractivecreature = new ArrayList<>();
 
-    protected List<String> skills = new ArrayList<>();
+    public List<String> skills = new ArrayList<>();
 
     protected boolean enableBox = true;
+
+    public ConcurrentHashMap<String,Object> status = new ConcurrentHashMap<>();
 
 
     public NPC(FullChunk chunk, CompoundTag nbt) {
@@ -1406,10 +1408,6 @@ public class NPC extends EntityHuman {
 
     public void setSkills(List<String> skills) {
         this.skills = skills;
-    }
-
-    public List<String> getSkills() {
-        return skills;
     }
 /*
     @Override

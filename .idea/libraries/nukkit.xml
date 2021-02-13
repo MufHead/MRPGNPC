@@ -1,7 +1,7 @@
 <component name="libraryTable">
   <library name="nukkit">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/../NK/nukkit.jar!/" />
+      <root url="jar://$USER_HOME$/Desktop/MCBE服务器/nukkit.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
