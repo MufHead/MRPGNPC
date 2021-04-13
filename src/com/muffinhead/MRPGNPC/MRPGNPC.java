@@ -7,17 +7,18 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.data.Skin;
 import cn.nukkit.entity.item.EntityItem;
+import cn.nukkit.entity.mob.EntityZombie;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Location;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.Config;
-import com.google.gson.internal.LinkedTreeMap;
 import com.muffinhead.MRPGNPC.Events.MobNPCBeAttack;
 import com.muffinhead.MRPGNPC.NPCs.MobNPC;
 import com.muffinhead.MRPGNPC.NPCs.NPC;
 import com.muffinhead.MRPGNPC.Tasks.AutoSpawn;
+import com.muffinhead.MRPGNPC.Tasks.worldRandomSpawn;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -38,7 +39,9 @@ public class MRPGNPC extends PluginBase {
     public static ConcurrentHashMap<String, Config> mobconfigs = new ConcurrentHashMap<String, Config>();
     public static ConcurrentHashMap<String, Config> pointconfigs = new ConcurrentHashMap<String, Config>();
     public static ConcurrentHashMap<String, Config> skillconfigs = new ConcurrentHashMap<String, Config>();
+    public static Map<String, CompoundTag> skinTags = new HashMap<>();
     public static ConcurrentHashMap<String, Skin> skins = new ConcurrentHashMap<>();
+    public static Config worldSpawnConfig;
 
 
     @Override
@@ -54,13 +57,16 @@ public class MRPGNPC extends PluginBase {
         checkMobs();
         checkPoints();
         checkSkills();
-        getServer().getScheduler().scheduleDelayedRepeatingTask(new AutoSpawn(),1,1);
+        checkWorldSpawnConfig();
+        getServer().getScheduler().scheduleDelayedRepeatingTask(new AutoSpawn(),1,1,true);
+        getServer().getScheduler().scheduleDelayedRepeatingTask(new worldRandomSpawn(),20,20,true);
         try {
             checkSkins();
         } catch (IOException e) {
             getServer().getLogger().alert("Skins check wrong！！");
         }
     }
+
 
     @Override
     public void onDisable() {
@@ -189,7 +195,14 @@ public class MRPGNPC extends PluginBase {
                     checkMobs();
                     checkPoints();
                     checkSkills();
-                    getServer().getScheduler().scheduleDelayedRepeatingTask(new AutoSpawn(),1,1);
+                    for (Level level:getServer().getLevels().values()){
+                        for (Entity entity:level.getEntities()){
+                            if (!(entity instanceof Player)){
+                                entity.close();
+                            }
+                        }
+                    }
+                    //getServer().getScheduler().scheduleDelayedRepeatingTask(new AutoSpawn(),1,1);
                     try {
                         checkSkins();
                     } catch (IOException e) {
@@ -342,7 +355,7 @@ public class MRPGNPC extends PluginBase {
             Config config = mobconfigs.get(args[2]);
             if (config!=null) {
                 Location location = new Location(Double.parseDouble(args[3]), Double.parseDouble(args[4]), Double.parseDouble(args[5]),Double.parseDouble(args[7]),Double.parseDouble(args[8]),getServer().getLevelByName(args[6]));
-                MobNPC npc = new MobNPC(location.getChunk(), NPC.getDefaultNBT(location));
+                MobNPC npc = new MobNPC(location.getChunk(), MobNPC.getDefaultNBT(location));
                 npc.setDisplayName(config.getString("DisplayName"));
                 npc.setMaxHealth(config.getInt("MaxHealth"));
                 npc.setHealth(npc.getMaxHealth());
@@ -389,6 +402,10 @@ public class MRPGNPC extends PluginBase {
             skinsFolder.mkdirs();
         }
         for (File skinFolder : Objects.requireNonNull(skinsFolder.listFiles())) {
+
+            CompoundTag tag = getSkinTag(skinFolder.getName());
+            skinTags.put(skinFolder.getName(), tag);
+
             Skin skin = newSkin(skinFolder.toPath());
             Path capePath = skinFolder.toPath().resolve("cape.png");
             if (capePath.toFile().exists()) {
@@ -404,6 +421,45 @@ public class MRPGNPC extends PluginBase {
             skins.put(skinFolder.getName(), skin);
         }
     }
+    public static CompoundTag getSkinTag(String skinName) throws IOException {
+        Skin skin = new Skin();
+        BufferedImage skindata = null;
+        try {
+            skindata = ImageIO.read(new File(mrpgnpc.getDataFolder() + "/Skins/" + skinName + "/skin.png"));
+        } catch (IOException var19) {
+            System.out.println("不存在模型");
+        }
+
+        if (skindata != null) {
+            skin.setSkinData(skindata);
+            skin.setSkinId(skinName);
+        }
+        Map<String, Object> skinJson = (new Config(mrpgnpc.getDataFolder() + "/皮肤列表/" + skinName + "/geometry.json", Config.JSON)).getAll();
+        String geometryName = null;
+        for (Map.Entry<String, Object> entry1 : skinJson.entrySet()) {
+            if (geometryName == null) {
+                geometryName = entry1.getKey();
+            }
+        }
+        skin.setGeometryName(geometryName);
+        skin.setGeometryData(readFile(new File(mrpgnpc.getDataFolder() + "/皮肤列表/" + skinName + "/geometry.json")));
+        CompoundTag skinTag = new CompoundTag()
+                .putByteArray("Data", skin.getSkinData().data)
+                .putInt("SkinImageWidth", skin.getSkinData().width)
+                .putInt("SkinImageHeight", skin.getSkinData().height)
+                .putString("ModelId", skin.getSkinId())
+                .putString("CapeId", skin.getCapeId())
+                .putByteArray("CapeData", skin.getCapeData().data)
+                .putInt("CapeImageWidth", skin.getCapeData().width)
+                .putInt("CapeImageHeight", skin.getCapeData().height)
+                .putByteArray("SkinResourcePatch", skin.getSkinResourcePatch().getBytes(StandardCharsets.UTF_8))
+                .putByteArray("GeometryData", skin.getGeometryData().getBytes(StandardCharsets.UTF_8))
+                .putByteArray("AnimationData", skin.getAnimationData().getBytes(StandardCharsets.UTF_8))
+                .putBoolean("PremiumSkin", skin.isPremium())
+                .putBoolean("PersonaSkin", skin.isPersona())
+                .putBoolean("CapeOnClassicSkin", skin.isCapeOnClassic());
+        return skinTag;
+    }
     public Skin newSkin(Path path) throws IOException {
         Skin skin = new Skin();
         skin.generateSkinId("jpm");
@@ -413,6 +469,9 @@ public class MRPGNPC extends PluginBase {
         skin.setSkinData(ImageIO.read(Paths.get(path.toString() + "/skin.png").toFile()));
         skin.setTrusted(true);
         return skin;
+    }
+    public void checkWorldSpawnConfig(){
+        worldSpawnConfig = new Config(getDataFolder().toPath().resolve("worldRandomSpawn.yml").toString(), Config.YAML);
     }
     public void checkMobs(){
         File mobsFolder = getMobFolder().toFile();

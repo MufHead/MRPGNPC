@@ -15,6 +15,7 @@ import cn.nukkit.event.player.PlayerDeathEvent;
 import cn.nukkit.event.player.PlayerToggleSneakEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
+import cn.nukkit.level.Location;
 import cn.nukkit.level.Position;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.level.particle.DestroyBlockParticle;
@@ -31,6 +32,7 @@ import cn.nukkit.network.protocol.PlayerSkinPacket;
 import cn.nukkit.network.protocol.SetEntityLinkPacket;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.scheduler.Task;
+import cn.nukkit.utils.Config;
 import com.muffinhead.MRPGNPC.MRPGNPC;
 import com.muffinhead.mdungeon.DataPacketLimit;
 import com.muffinhead.mdungeon.MDungeon;
@@ -130,12 +132,18 @@ public class NPC extends EntityHuman {
                 .putString("ModelID", this.skin.getSkinId())
                 .putString("ModelId", this.skin.getSkinId())
                 .putString("GeometryName", this.geometryName)
-                .putByteArray("GeometryData", this.skin.getGeometryData().getBytes(StandardCharsets.UTF_8));
-        spawnPosition = getPosition();
+                .putByteArray("GeometryData", this.skin.getGeometryData().getBytes(StandardCharsets.UTF_8))
+                .putBoolean("Transparent", true)
+                .putByteArray("Data", skin.getSkinData().data)
+                .putString("Name", "")
+                .putByteArray("CapeData", skin.getCapeData().data);
 //teleport to avoid invisible bug
-        this.teleport(new Vector3(this.x + 0.1, this.y, this.z + 0.1));
+        Location location = this.getLocation();
+        location.x+=0.1;
+        location.z+=0.1;
+        this.teleport(location);
+        spawnPosition = getPosition();
 
-        this.teleport(new Vector3(this.x - 0.1, this.y, this.z - 0.1));
     }
 
     public void setSkin(Skin skin) {
@@ -302,7 +310,9 @@ public class NPC extends EntityHuman {
                 this.target = null;
             }
         } else {
-            this.moveTowards(this.spawnPosition);
+            if (this.distance(spawnPosition)>0.02*this.speed) {
+                this.moveTowards(this.spawnPosition);
+            }
         }
     }
 
@@ -442,7 +452,15 @@ public class NPC extends EntityHuman {
                 motion.z);
         return true;
     }
-
+    public boolean isDamagerFriendly(Entity entity){
+        List<Entity> entities = new ArrayList<>();
+        this.simplifyTarget(entities,this.getActiveattackcreature(),entity);
+        if (entities.isEmpty()){
+            return true;
+        }else{
+            return false;
+        }
+    }
     public Entity getTarget() {
         List<Entity> entities = new ArrayList<>();
         for (Entity entity : getLevel().getEntities()) {
@@ -540,10 +558,10 @@ public class NPC extends EntityHuman {
             List<Entity> firstHatePool = getMaxValueList(firstHateMap);
 //get random target
             Collections.shuffle(firstHatePool);
-
             if (!firstHatePool.isEmpty()) {
                 entity = firstHatePool.get(0);
             }
+
             if (entity != null) {
                 return entity;
             }
@@ -1666,15 +1684,32 @@ public class NPC extends EntityHuman {
 
         return s;
     }
+
+    @Override
+    public void spawnToAll() {
+        if (this.chunk != null && !this.closed) {
+            Iterator var1 = this.level.getChunkPlayers(this.chunk.getX(), this.chunk.getZ()).values().iterator();
+
+            while(var1.hasNext()) {
+                Player player = (Player)var1.next();
+                if (player.isOnline()) {
+                    this.spawnTo(player);
+                }
+            }
+
+        }
+    }
+
     public void spawnTo(Player player) {
         if (player.isLoaderActive()) {
             if (Long.valueOf(this.getId()) == null) {
                 this.id = Entity.entityCount++;
             }
+            this.server.updatePlayerListData(this.getUniqueId(), this.getId(), this.getName(), this.skin, new Player[]{player});
             if (!this.hasSpawned.containsKey(player.getLoaderId())) {
                 this.hasSpawned.put(player.getLoaderId(), player);
                 if (this.skin == null) {
-                    this.skin = MRPGNPC.skins.get(skinname);
+                    this.namedTag.putCompound("Skin", MRPGNPC.skinTags.get(this.skinname));
                 }
                 PlayerSkinPacket packet = new PlayerSkinPacket();
                 packet.uuid = this.uuid;
@@ -1712,4 +1747,5 @@ public class NPC extends EntityHuman {
             }
         }
     }
+
 }

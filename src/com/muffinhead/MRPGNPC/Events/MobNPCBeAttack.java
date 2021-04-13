@@ -2,9 +2,9 @@ package com.muffinhead.MRPGNPC.Events;
 
 import cn.nukkit.Player;
 import cn.nukkit.Server;
+import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.ConsoleCommandSender;
 import cn.nukkit.entity.Entity;
-import cn.nukkit.entity.EntityHuman;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.EventPriority;
 import cn.nukkit.event.Listener;
@@ -13,8 +13,13 @@ import cn.nukkit.event.entity.EntityDamageByEntityEvent;
 import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.event.entity.EntityDeathEvent;
 import cn.nukkit.event.level.ChunkUnloadEvent;
-import cn.nukkit.event.player.PlayerDeathEvent;
+import cn.nukkit.event.server.DataPacketSendEvent;
+import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.network.protocol.AnvilDamagePacket;
+import cn.nukkit.network.protocol.DataPacket;
+import cn.nukkit.network.protocol.EntityEventPacket;
+import cn.nukkit.network.protocol.SetEntityDataPacket;
 import com.muffinhead.MRPGNPC.Effects.Bullet;
 import com.muffinhead.MRPGNPC.NPCs.MobNPC;
 import com.muffinhead.MRPGNPC.NPCs.NPC;
@@ -29,7 +34,13 @@ public class MobNPCBeAttack implements Listener {
         if (entity instanceof MobNPC) {
             //particle
             if (!event.isCancelled()){
-                ((MobNPC) entity).beattackparticle();
+                if (event instanceof EntityDamageByEntityEvent) {
+                    if (!((MobNPC) entity).isDamagerFriendly(((EntityDamageByEntityEvent) event).getDamager())) {
+                        ((MobNPC) entity).beattackparticle();
+                    }
+                }else{
+                    ((MobNPC) entity).beattackparticle();
+                }
             }
             //particle
             //attackcooldown 0
@@ -152,39 +163,40 @@ public class MobNPCBeAttack implements Listener {
 
     public void commands(List<String> deathcommands, MobNPC npc) {
         for (String probAndCommands : deathcommands) {
-            int probability = Integer.parseInt(probAndCommands.split(":")[0]);
+            int probability = Integer.parseInt(probAndCommands.split(";")[0]);
             if (new Random().nextInt(101) <= probability) {
-                String commands = probAndCommands.split(":")[1];
+                String sender = probAndCommands.split(";")[1];
+                String commands = probAndCommands.split(";")[2];
                 if (commands.contains("||")) {
                     String[] commandgroup = commands.split("\\|\\|");
                     String command = commandgroup[new Random().nextInt(commandgroup.length)];
                     if (command.contains("&&")) {
                         for (String c : command.split("&&")) {
-                            runcommand(c, npc);
+                            runcommand(c, npc, sender);
                         }
                     }else{
-                        runcommand(command, npc);
+                        runcommand(command, npc, sender);
                     }
                 }else{
                     if (commands.contains("&&")) {
                         for (String command : commands.split("&&")) {
-                            runcommand(command, npc);
+                            runcommand(command, npc, sender);
                         }
                     }else{
-                        runcommand(commands, npc);
+                        runcommand(commands, npc, sender);
                     }
                 }
             }
         }
     }
 
-    public void runcommand(String command, MobNPC npc) {
+    public void runcommand(String command, MobNPC npc,String sender) {
         String finalCommand = command;
         List<Entity> damagers = NPC.getMaxValueList(npc.getDamagePool());
         damagers.removeIf(entity -> !(entity instanceof Player));
         List<Entity> haters = NPC.getMaxValueList(npc.getHatePool());
         haters.removeIf(entity -> !(entity instanceof Player));
-        ConsoleCommandSender sender = Server.getInstance().getConsoleSender();
+        ConsoleCommandSender commandSender = Server.getInstance().getConsoleSender();
         boolean isMulti = false;
 
         //damager
@@ -233,21 +245,54 @@ public class MobNPCBeAttack implements Listener {
             if (finalCommand.contains("{all.damagers.name}")) {
                 for (Entity player : npc.getDamagePool().keySet()) {
                     if (player instanceof Player) {
-                        Server.getInstance().dispatchCommand(sender, finalCommand.replaceAll("\\{all\\.damagers\\.name}", player.getName()));
+                        switch (sender) {
+                            case "console": {
+                                Server.getInstance().dispatchCommand(commandSender, finalCommand.replaceAll("\\{all\\.damagers\\.name}", player.getName()));
+                                break;
+                            }
+                            case "player": {
+                                Server.getInstance().dispatchCommand((CommandSender) player, finalCommand.replaceAll("\\{all\\.damagers\\.name}", player.getName()));
+                                break;
+                            }
+                        }
                     }
                 }
             }
             if (finalCommand.contains("{all.haters.name}")) {
                 for (Entity player : npc.getHatePool().keySet()) {
                     if (player instanceof Player) {
-                        Server.getInstance().dispatchCommand(sender, finalCommand.replaceAll("\\{all\\.haters\\.name}", player.getName()));
+                        switch (sender) {
+                            case "console": {
+                                Server.getInstance().dispatchCommand(commandSender, finalCommand.replaceAll("\\{all\\.haters\\.name}", player.getName()));
+                                break;
+                            }
+                            case "player": {
+                                Server.getInstance().dispatchCommand((CommandSender) player, finalCommand.replaceAll("\\{all\\.haters\\.name}", player.getName()));
+                                break;
+                            }
+                        }
                     }
                 }
             }
         }else{
-            Server.getInstance().dispatchCommand(sender, finalCommand);
+            Server.getInstance().dispatchCommand(commandSender, finalCommand);
         }
     }
+    @EventHandler
+    public void onDataPacket(DataPacketSendEvent event){
+        DataPacket packet = event.getPacket();
+        if (packet instanceof EntityEventPacket){
+            Player player = event.getPlayer();
+            Level level = player.getLevel();
+            Entity entity = level.getEntity(((EntityEventPacket) packet).eid);
+            if (entity instanceof MobNPC){
+                if (((MobNPC) entity).isDamagerFriendly(entity)){
+                    event.setCancelled();
+                }
+            }
+        }
+    }
+
     @EventHandler
     public void onDamage(EntityDamageByChildEntityEvent event){
         Entity bullet = event.getChild();

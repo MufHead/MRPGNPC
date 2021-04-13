@@ -37,9 +37,9 @@ public class AutoSpawn extends Task {
             } else {
             }
             Location location = new Location();
-            location.x = Double.parseDouble(config.getString("PointPosition").split(":")[0]);
+            location.x = Double.parseDouble(config.getString("PointPosition").split(":")[0])-0.1;
             location.y = Double.parseDouble(config.getString("PointPosition").split(":")[1]);
-            location.z = Double.parseDouble(config.getString("PointPosition").split(":")[2]);
+            location.z = Double.parseDouble(config.getString("PointPosition").split(":")[2])-0.1;
             location.level = MRPGNPC.mrpgnpc.getServer().getLevelByName(config.getString("PointPosition").split(":")[3]);
             if (config.getString("PointPosition").split(":").length > 4) {
                 location.yaw = Double.parseDouble(config.getString("PointPosition").split(":")[4]);
@@ -102,15 +102,17 @@ public class AutoSpawn extends Task {
                         spawnamount = maxamount - mobAmount.get(pointname);
                     }
                     for (int t = 0; t < spawnamount; t++) {
-                        try {
+                        //try {
                             MobNPC npc = MRPGNPC.mrpgnpc.spawnNPC(MRPGNPC.mrpgnpc.getServer().getConsoleSender(), mobfile, location, mobFeature);
                             npc.spawnToAll();
-                        } catch (Exception e) {
+                       // } catch (Exception e) {
+                        /*
                             System.out.println("Spawn Wrong！");
                             System.out.println("MobFile"+mobfile);
                             System.out.println("Location"+location);
                             System.out.println("MobFeature"+mobFeature);
                         }
+                         */
                     }
                     spawnTick.put(mobFeature, 0);
                 }

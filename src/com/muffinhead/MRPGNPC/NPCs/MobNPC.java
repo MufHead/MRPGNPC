@@ -75,7 +75,24 @@ public class MobNPC extends NPC{
         checkPlayerIsAttractive();
         updateDisplayName();
         bedamagedcdCheck();
+        checkRandomDisappear();
         return super.entityBaseTick(tickDiff);
+    }
+
+    public void checkRandomDisappear(){
+        if (this.mobFeature.split(":")[0].equals("Random")){
+            double disappearDistance = Double.parseDouble(this.mobFeature.split(":")[this.mobFeature.split(":").length-1]);
+            boolean hasPlayerNearby = false;
+            for (Player player:this.getLevel().getPlayers().values()){
+                if (player.distance(this)<=disappearDistance){
+                    hasPlayerNearby = true;
+                }
+            }
+            if (!hasPlayerNearby) {
+                this.despawnFromAll();
+                this.kill();
+            }
+        }
     }
 
 
