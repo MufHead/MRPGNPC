@@ -58,8 +58,8 @@ public class MRPGNPC extends PluginBase {
         checkPoints();
         checkSkills();
         checkWorldSpawnConfig();
-        getServer().getScheduler().scheduleDelayedRepeatingTask(new AutoSpawn(),1,1,true);
-        getServer().getScheduler().scheduleDelayedRepeatingTask(new worldRandomSpawn(),20,20,true);
+        getServer().getScheduler().scheduleDelayedRepeatingTask(new AutoSpawn(),1,1);
+        getServer().getScheduler().scheduleDelayedRepeatingTask(new worldRandomSpawn(),20,20);
         try {
             checkSkins();
         } catch (IOException e) {

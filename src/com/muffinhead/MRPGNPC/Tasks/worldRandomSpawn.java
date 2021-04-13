@@ -97,22 +97,25 @@ public class worldRandomSpawn extends Task {
         location.x+=xx;
         location.z+=zz;
         if (level.getBlock(new Vector3(location.x,location.y,location.z)).getId() != Block.AIR){
-            for (;level.getBlock(new Vector3(location.x,location.y,location.z)).getId() != Block.AIR&&location.y<=location.y+distance;){
+            for (;(level.getBlock(new Vector3(location.x,location.y,location.z)).getId() != Block.AIR||!level.getBlock(new Vector3(location.x,location.y,location.z)).canPassThrough())&&location.y<=location.y+distance;){
                 location.y++;
             }
         }
         if (level.getBlock(new Vector3(location.x,location.y,location.z)).getId() != Block.AIR){
-            for (;level.getBlock(new Vector3(location.x,location.y,location.z)).getId() != Block.AIR&&location.y<=location.y-distance;){
+            for (;(level.getBlock(new Vector3(location.x,location.y,location.z)).getId() != Block.AIR||!level.getBlock(new Vector3(location.x,location.y,location.z)).canPassThrough())&&location.y<=location.y-distance;){
                 location.y--;
             }
         }
-        if (level.getBlock(new Vector3(location.x,location.y,location.z)).getId() != Block.AIR){
+        if (level.getBlock(new Vector3(location.x,location.y,location.z)).getId() != Block.AIR||!level.getBlock(new Vector3(location.x,location.y,location.z)).canPassThrough()){
             return getSafeLoc(level,distance,player);
         }
-        for (;level.getBlock(new Vector3(location.x,location.y-1,location.z)).getId()== Block.AIR&&location.distance(player)<=distance;){
+        for (;(level.getBlock(new Vector3(location.x,location.y-1,location.z)).getId() == Block.AIR||level.getBlock(new Vector3(location.x,location.y,location.z)).canPassThrough())&&location.distance(player)<=distance;){
             location.y--;
         }
         if (level.getBlock(new Vector3(location.x,location.y-1,location.z)).getId()== Block.AIR){
+            return null;
+        }
+        if (!location.getChunk().isLoaded()){
             return null;
         }
 
