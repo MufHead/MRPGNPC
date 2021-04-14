@@ -253,7 +253,7 @@ public class MobNPC extends NPC{
             List<String> skillList = config.getList("Skills");
             if (skillList != null) {
                 for (String skill : skillList) {
-                    String[] info = skill.split(":");
+                    String[] info = skill.split(";");
                     MobNPC mob = this;
                     if (info.length == 2) {
                         if (info[1].contains("lastDamager")||info[1].contains("damager.name")) {
@@ -294,7 +294,12 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "Damage": {
-                    List<Entity> entities = MobNPC.this.getTargets(s[1].split("-"));
+                    List<Entity> entities = new ArrayList<>();
+                    if (s[1].contains("/")) {
+                        entities = MobNPC.this.getTargets(s[1].split("/")[0].split("-"), Arrays.asList(s[1].split("/")[1]));
+                    }else{
+                        entities = MobNPC.this.getTargets(s[1].split("-"),null);
+                    }
                     for (Entity entity:entities) {
                         if (entity != null) {
                             HashMap<EntityDamageEvent.DamageModifier, Float> damage = new HashMap<>();
@@ -318,7 +323,12 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "BlowUp": {
-                    List<Entity> entities = MobNPC.this.getTargets(s[1].split("-"));
+                    List<Entity> entities = new ArrayList<>();
+                    if (s[1].contains("/")) {
+                        entities = MobNPC.this.getTargets(s[1].split("/")[0].split("-"), Arrays.asList(s[1].split("/")[1]));
+                    }else{
+                        entities = MobNPC.this.getTargets(s[1].split("-"),null);
+                    }
                     for (Entity entity : entities) {
                         if (!(entity == null)) {
                             double strength = readEntityParameters(s[2]);
@@ -338,8 +348,13 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "Burn": {
+                    List<Entity> entities = new ArrayList<>();
+                    if (s[1].contains("/")) {
+                        entities = MobNPC.this.getTargets(s[1].split("/")[0].split("-"), Arrays.asList(s[1].split("/")[1]));
+                    }else{
+                        entities = MobNPC.this.getTargets(s[1].split("-"),null);
+                    }
                     int tick = (int) readEntityParameters(s[2]);
-                    List<Entity> entities = MobNPC.this.getTargets(s[1].split("-"));
                     for (Entity entity : entities) {
                         if (!(entity == null)) {
                             entity.fireTicks = tick;
@@ -348,7 +363,12 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "Message": {
-                    List<Entity> entities = MobNPC.this.getTargets(s[1].split("-"));
+                    List<Entity> entities = new ArrayList<>();
+                    if (s[1].contains("/")) {
+                        entities = MobNPC.this.getTargets(s[1].split("/")[0].split("-"), Arrays.asList(s[1].split("/")[1]));
+                    }else{
+                        entities = MobNPC.this.getTargets(s[1].split("-"),null);
+                    }
                     String mes = s[2];
                     for (Entity entity : entities) {
                         if (!(entity == null)) {
@@ -361,7 +381,12 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "Title": {
-                    List<Entity> entities = MobNPC.this.getTargets(s[1].split("-"));
+                    List<Entity> entities = new ArrayList<>();
+                    if (s[1].contains("/")) {
+                        entities = MobNPC.this.getTargets(s[1].split("/")[0].split("-"), Arrays.asList(s[1].split("/")[1]));
+                    }else{
+                        entities = MobNPC.this.getTargets(s[1].split("-"),null);
+                    }
                     String title = s[2];
                     String subTitle = s[3];
                     for (Entity entity : entities) {
@@ -391,7 +416,12 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "Effect": {
-                    List<Entity> entities = this.getTargets(s[1].split("-"));
+                    List<Entity> entities = new ArrayList<>();
+                    if (s[1].contains("/")) {
+                        entities = MobNPC.this.getTargets(s[1].split("/")[0].split("-"), Arrays.asList(s[1].split("/")[1]));
+                    }else{
+                        entities = MobNPC.this.getTargets(s[1].split("-"),null);
+                    }
                     int id = Integer.parseInt(s[2]);
                     int time = (int) readEntityParameters(s[3]);
                     int level = (int) readEntityParameters(s[4]);
@@ -451,7 +481,12 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "Lightning": {
-                    List<Entity> entities = this.getTargets(s[1].split("-"));
+                    List<Entity> entities = new ArrayList<>();
+                    if (s[1].contains("/")) {
+                        entities = MobNPC.this.getTargets(s[1].split("/")[0].split("-"), Arrays.asList(s[1].split("/")[1]));
+                    }else{
+                        entities = MobNPC.this.getTargets(s[1].split("-"),null);
+                    }
                     for (Entity entity:entities) {
                         if (!(entity == null)) {
                             Lightning lightning = new Lightning(mob.chunk, Lightning.getDefaultNBT(entity));
@@ -566,7 +601,12 @@ public class MobNPC extends NPC{
                     break;
                 }
                 case "TornadoParticle":{
-                    List<Entity> entities = MobNPC.this.getTargets(s[1].split("-"));
+                    List<Entity> entities = new ArrayList<>();
+                    if (s[1].contains("/")) {
+                        entities = MobNPC.this.getTargets(s[1].split("/")[0].split("-"), Arrays.asList(s[1].split("/")[1]));
+                    }else{
+                        entities = MobNPC.this.getTargets(s[1].split("-"),null);
+                    }
                     String identifier = s[2];
                     double turns = Double.parseDouble(s[3]);
                     double startY = readEntityParameters(s[4]);
@@ -613,10 +653,11 @@ public class MobNPC extends NPC{
                         pk.position = vector;
                         pk.dimensionId = this.getLevel().getDimension();
                         vector.subtract((float) x, 0, (float) y);
+                        List<Entity> finalEntities = entities;
                         Server.getInstance().getScheduler().scheduleDelayedTask(MRPGNPC.mrpgnpc,new Task() {
                             @Override
                             public void onRun(int i) {
-                                for (Entity entity:entities){
+                                for (Entity entity: finalEntities){
                                     if (entity instanceof Player){
                                         ((Player) entity).dataPacket(pk);
                                     }

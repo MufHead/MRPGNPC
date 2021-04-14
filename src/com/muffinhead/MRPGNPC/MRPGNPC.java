@@ -44,6 +44,8 @@ public class MRPGNPC extends PluginBase {
     public static Config worldSpawnConfig;
 
 
+
+
     @Override
     public void onLoad() {
         Entity.registerEntity("MobNPC",MobNPC.class);

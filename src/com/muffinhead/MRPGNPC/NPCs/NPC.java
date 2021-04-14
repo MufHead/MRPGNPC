@@ -580,21 +580,21 @@ public class NPC extends EntityHuman {
         return null;
     }
 
-    public List<Entity> getTargets(String[] s) {
-        return getTargets(s[0], s.length < 2 ? 0 : Double.parseDouble(s[2]), s.length < 3 ? this.getHaterange() : Integer.parseInt(s[2]), s.length < 4 ? this.level.getEntities().length : Integer.parseInt(s[3]), null);
+    public List<Entity> getTargets(String[] s,List<String> creaturetype) {
+        return getTargets(s[0], s.length < 2 ? 0 : Double.parseDouble(s[2]), s.length < 3 ? this.getHaterange() : Integer.parseInt(s[2]), s.length < 4 ? this.level.getEntities().length : Integer.parseInt(s[3]), creaturetype);
     }
 
     public List<Entity> getTargets(String type,double figure,double distance, int amountlimit, List<String> creaturetype) {
         List<Entity> entities = new ArrayList<>();
         for (Entity entity : getLevel().getEntities()) {
-            if (entity.distance(this) <= distance) {
-                if (creaturetype != null) {
-                    simplifyTarget(entities, creaturetype, entity);
-                } else {
-                    simplifyTarget(entities, activeattackcreature, entity);
-                }
+            if (creaturetype != null) {
+                simplifyTarget(entities, creaturetype, entity);
+            } else {
+                simplifyTarget(entities, activeattackcreature, entity);
             }
+            //System.out.println(creaturetype);
         }
+
         switch (type) {
             case "mostDamage": {
                 ConcurrentHashMap<Entity, Float> damagepool = new ConcurrentHashMap<>();
