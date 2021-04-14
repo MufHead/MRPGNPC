@@ -173,13 +173,11 @@ public class NPC extends EntityHuman {
             } else if (this.frontY <= (getGravity() * 4.0F)) {
                 if (block.getBoundingBox().getMaxY()-block.getY()<0.1) {
                     if (this.getY()<block.getBoundingBox().getMaxY()) {
-                        System.out.println(this.frontY+this.y);
                         this.frontY += block.getBoundingBox().getMaxY() - block.getY();
                     }else{
                         this.frontY-=getGravity();
                     }
                 }else{
-                    System.out.println(2);
                     this.frontY = (getGravity() * 4.0F);
                 }
             } else if (block instanceof cn.nukkit.block.BlockSlab || block instanceof cn.nukkit.block.BlockStairs) {
