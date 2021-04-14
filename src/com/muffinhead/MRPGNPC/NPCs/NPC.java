@@ -164,11 +164,24 @@ public class NPC extends EntityHuman {
         if (getDirection() == null)
             return false;
         Block block = that.getSide(getHorizontalFacing());
+        if (block.getBoundingBox()!=null) {
+            //System.out.println((block.getBoundingBox()).getMaxY()-block.getY());
+        }
         if (!block.canPassThrough() && block.up().canPassThrough() && that.up(2).canPassThrough()) {
             if (block instanceof cn.nukkit.block.BlockFence || block instanceof cn.nukkit.block.BlockFenceGate) {
                 this.frontY = getGravity();
             } else if (this.frontY <= (getGravity() * 4.0F)) {
-                this.frontY = (getGravity() * 4.0F);
+                if (block.getBoundingBox().getMaxY()-block.getY()<0.1) {
+                    if (this.getY()<block.getBoundingBox().getMaxY()) {
+                        System.out.println(this.frontY+this.y);
+                        this.frontY += block.getBoundingBox().getMaxY() - block.getY();
+                    }else{
+                        this.frontY-=getGravity();
+                    }
+                }else{
+                    System.out.println(2);
+                    this.frontY = (getGravity() * 4.0F);
+                }
             } else if (block instanceof cn.nukkit.block.BlockSlab || block instanceof cn.nukkit.block.BlockStairs) {
                 this.frontY = (getGravity() * 4.0F);
             } else if (this.frontY <= (getGravity() * 8.0F)) {
