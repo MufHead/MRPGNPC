@@ -274,6 +274,7 @@ public class MRPGNPC extends PluginBase {
         config.set("Skin", "GreenCross");
         config.set("ItemInHand", "267:0");
         config.set("BeDamagedBlockParticleID", "152:0");
+        config.set("MoveLimitDistance", 15.0);
         config.set("ActiveAttackCreature",new ArrayList<>());
         config.set("UnattractiveCreature",new ArrayList<>());
         config.set("Drops", new ArrayList<>());
@@ -350,6 +351,7 @@ public class MRPGNPC extends PluginBase {
                     npc.setSkinname(config.getString("Skin"));
                     npc.setSkin(skins.get(config.getString("Skin")));
                     npc.setEnableBox(config.getBoolean("BoundingBox"));
+                    npc.moveLimitDistance = config.getDouble("MoveLimitDistance");
                     return npc;
                 }
             }
@@ -385,6 +387,7 @@ public class MRPGNPC extends PluginBase {
                 npc.setSkinname(config.getString("Skin"));
                 npc.setSkin(skins.get(config.getString("Skin")));
                 npc.setEnableBox(config.getBoolean("BoundingBox"));
+                npc.moveLimitDistance = config.getDouble("MoveLimitDistance");
                 return npc;
             }
         }

@@ -51,8 +51,9 @@ import static java.lang.Integer.parseInt;
 
 
 public class NPC extends EntityHuman {
-    protected boolean isAttacking = false;
+    public double moveLimitDistance = 0;
 
+    protected boolean isAttacking = false;
     protected String camp = "Example";
 
     protected Position spawnPosition;

@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static java.lang.Boolean.getBoolean;
 import static java.lang.Integer.parseInt;
 
-public class MobNPC extends NPC{
+public class MobNPC extends NPC {
     public MobNPC(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
     }
@@ -45,9 +45,9 @@ public class MobNPC extends NPC{
     public boolean isStop() {
         if (!status.containsKey("Stop")) {
             return false;
-        }else{
-            status.put("Stop",Integer.parseInt(status.get("Stop").toString())-1);
-            if (Integer.parseInt(status.get("Stop").toString())<=0){
+        } else {
+            status.put("Stop", Integer.parseInt(status.get("Stop").toString()) - 1);
+            if (Integer.parseInt(status.get("Stop").toString()) <= 0) {
                 status.remove("Stop");
                 return false;
             }
@@ -76,7 +76,20 @@ public class MobNPC extends NPC{
         updateDisplayName();
         bedamagedcdCheck();
         checkRandomDisappear();
+        checkDistanceLimit();
         return super.entityBaseTick(tickDiff);
+    }
+
+    public void checkDistanceLimit() {
+        if (this.moveLimitDistance>0) {
+            if (this.distance(this.spawnPosition) >= this.moveLimitDistance) {
+                for (Entity entity:hatePool.keySet()){
+                    cantAttractiveTarget.put(entity, (int) Math.round(20*this.distance(spawnPosition)/speed));
+                }
+                hatePool = new ConcurrentHashMap<>();
+                damagePool = new ConcurrentHashMap<>();
+            }
+        }
     }
 
     public void checkRandomDisappear(){
