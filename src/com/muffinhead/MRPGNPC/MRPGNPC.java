@@ -401,17 +401,23 @@ public class MRPGNPC extends PluginBase {
         return item;
     }
     public void checkSkins() throws IOException {
-        Path skinPath = getDataFolder().toPath().resolve("Skins");
+        Path skinPath = getDataFolder().toPath().resolve("皮肤列表");
         File skinsFolder = new File(skinPath.toString());
         if (!skinsFolder.exists()) {
             skinsFolder.mkdirs();
         }
         for (File skinFolder : Objects.requireNonNull(skinsFolder.listFiles())) {
 
-            CompoundTag tag = getSkinTag(skinFolder.getName());
-            skinTags.put(skinFolder.getName(), tag);
 
-            Skin skin = newSkin(skinFolder.toPath());
+            File geometry = skinFolder.toPath().resolve("geometry.json").toFile();
+            Config config = new Config(geometry.getPath());
+            Skin skin = null;
+            if (!config.getAll().containsKey("format_version")) {
+                skin = newSkinOld(skinFolder.toPath());
+            }else{
+                skin = newSkinNew(skinFolder.toPath());
+            }
+
             Path capePath = skinFolder.toPath().resolve("cape.png");
             if (capePath.toFile().exists()) {
                 try {
@@ -426,46 +432,42 @@ public class MRPGNPC extends PluginBase {
             skins.put(skinFolder.getName(), skin);
         }
     }
-    public static CompoundTag getSkinTag(String skinName) throws IOException {
+    public Skin newSkinOld(Path path) throws IOException {
         Skin skin = new Skin();
+        Path skinfolder = getDataFolder().toPath().resolve("皮肤列表");
+        Path skinthings = skinfolder.resolve(path);
+        Path skinpath = skinthings.resolve("skin.png");
+        Path geometrypath = skinthings.resolve("geometry.json");
+        // Path animationpath = skinPath.resolve(skinthings.getName()).resolve("geometry.animation.json");
         BufferedImage skindata = null;
+        String skingeometry = null;
+        //  String skinanimation = null;
         try {
-            skindata = ImageIO.read(new File(mrpgnpc.getDataFolder() + "/Skins/" + skinName + "/skin.png"));
-        } catch (IOException var19) {
-            System.out.println("不存在模型");
+            skindata = ImageIO.read(skinpath.toFile());
+            skingeometry = new String(Files.readAllBytes(geometrypath), StandardCharsets.UTF_8);
+            //skinanimation = new String(Files.readAllBytes(animationpath),StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.out.println(skinpath + ":" + geometrypath);
         }
-
         if (skindata != null) {
             skin.setSkinData(skindata);
-            skin.setSkinId(skinName);
-        }
-        Map<String, Object> skinJson = (new Config(mrpgnpc.getDataFolder() + "/皮肤列表/" + skinName + "/geometry.json", Config.JSON)).getAll();
-        String geometryName = null;
-        for (Map.Entry<String, Object> entry1 : skinJson.entrySet()) {
-            if (geometryName == null) {
-                geometryName = entry1.getKey();
+            // if (skinanimation!=null) {
+
+            //      skin.setAnimationData(skinanimation);
+            // }
+            if (skingeometry != null) {
+                skin.setGeometryData(skingeometry);
+            } else {
+                System.out.println("皮肤模型出错");
             }
+            skin.setGeometryName("geometry.yrcmdnpc");
+            skin.setSkinId(skinthings.toFile().getName());
         }
-        skin.setGeometryName(geometryName);
-        skin.setGeometryData(readFile(new File(mrpgnpc.getDataFolder() + "/皮肤列表/" + skinName + "/geometry.json")));
-        CompoundTag skinTag = new CompoundTag()
-                .putByteArray("Data", skin.getSkinData().data)
-                .putInt("SkinImageWidth", skin.getSkinData().width)
-                .putInt("SkinImageHeight", skin.getSkinData().height)
-                .putString("ModelId", skin.getSkinId())
-                .putString("CapeId", skin.getCapeId())
-                .putByteArray("CapeData", skin.getCapeData().data)
-                .putInt("CapeImageWidth", skin.getCapeData().width)
-                .putInt("CapeImageHeight", skin.getCapeData().height)
-                .putByteArray("SkinResourcePatch", skin.getSkinResourcePatch().getBytes(StandardCharsets.UTF_8))
-                .putByteArray("GeometryData", skin.getGeometryData().getBytes(StandardCharsets.UTF_8))
-                .putByteArray("AnimationData", skin.getAnimationData().getBytes(StandardCharsets.UTF_8))
-                .putBoolean("PremiumSkin", skin.isPremium())
-                .putBoolean("PersonaSkin", skin.isPersona())
-                .putBoolean("CapeOnClassicSkin", skin.isCapeOnClassic());
-        return skinTag;
+        return skin;
     }
-    public Skin newSkin(Path path) throws IOException {
+
+
+    public Skin newSkinNew(Path path) throws IOException {
         Skin skin = new Skin();
         skin.generateSkinId("jpm");
         skin.setGeometryName(path.toString()+"/geometry.jpm");
