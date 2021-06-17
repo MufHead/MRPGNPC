@@ -401,7 +401,7 @@ public class MRPGNPC extends PluginBase {
         return item;
     }
     public void checkSkins() throws IOException {
-        Path skinPath = getDataFolder().toPath().resolve("皮肤列表");
+        Path skinPath = getDataFolder().toPath().resolve("Skins");
         File skinsFolder = new File(skinPath.toString());
         if (!skinsFolder.exists()) {
             skinsFolder.mkdirs();
@@ -413,7 +413,11 @@ public class MRPGNPC extends PluginBase {
             Config config = new Config(geometry.getPath());
             Skin skin = null;
             if (!config.getAll().containsKey("format_version")) {
-                skin = newSkinOld(skinFolder.toPath());
+                if (config.getString("format_version").equals("1.10.0")){
+                    skin = newSkinNew(skinFolder.toPath());
+                }else {
+                    skin = newSkinOld(skinFolder.toPath());
+                }
             }else{
                 skin = newSkinNew(skinFolder.toPath());
             }
@@ -434,7 +438,7 @@ public class MRPGNPC extends PluginBase {
     }
     public Skin newSkinOld(Path path) throws IOException {
         Skin skin = new Skin();
-        Path skinfolder = getDataFolder().toPath().resolve("皮肤列表");
+        Path skinfolder = getDataFolder().toPath().resolve("Skins");
         Path skinthings = skinfolder.resolve(path);
         Path skinpath = skinthings.resolve("skin.png");
         Path geometrypath = skinthings.resolve("geometry.json");
@@ -460,7 +464,7 @@ public class MRPGNPC extends PluginBase {
             } else {
                 System.out.println("皮肤模型出错");
             }
-            skin.setGeometryName("geometry.yrcmdnpc");
+            skin.setGeometryName("geometry.mrpgnpc");
             skin.setSkinId(skinthings.toFile().getName());
         }
         return skin;
@@ -469,9 +473,9 @@ public class MRPGNPC extends PluginBase {
 
     public Skin newSkinNew(Path path) throws IOException {
         Skin skin = new Skin();
-        skin.generateSkinId("jpm");
-        skin.setGeometryName(path.toString()+"/geometry.jpm");
-        skin.setSkinResourcePatch("{\"geometry\":{\"default\":\"geometry.jpm\"}}");
+        skin.generateSkinId("mrpgnpc");
+        skin.setGeometryName(path.toString()+"/geometry.mrpgnpc");
+        skin.setSkinResourcePatch("{\"geometry\":{\"default\":\"geometry.mrpgnpc\"}}");
         skin.setGeometryData(new String(Files.readAllBytes(Paths.get(path.toString() + "/geometry.json"))));
         skin.setSkinData(ImageIO.read(Paths.get(path.toString() + "/skin.png").toFile()));
         skin.setTrusted(true);
