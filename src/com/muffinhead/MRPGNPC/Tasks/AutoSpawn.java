@@ -47,6 +47,15 @@ public class AutoSpawn extends Task {
             }
             //mobs spawnlist and limit
             List<String> spawnlist = config.getList("SpawnList");
+            if(location.getChunk() == null){
+                if(!location.level.isSpawnChunk((int) location.x, (int) location.z)){
+                }
+            }else {
+                //System.out.println(location.getChunk());
+                if (!location.getChunk().isGenerated()) {
+                    location.getChunk().setGenerated();
+                }
+            }
             for (String spawns : spawnlist) {
      /*
     mobfilename-respawntick-1timespawnamount-maxamount-spawnlimit
@@ -103,9 +112,11 @@ public class AutoSpawn extends Task {
                     }
                     for (int t = 0; t < spawnamount; t++) {
                         //try {
+                        if(location.getChunk() != null) {
                             MobNPC npc = MRPGNPC.mrpgnpc.spawnNPC(MRPGNPC.mrpgnpc.getServer().getConsoleSender(), mobfile, location, mobFeature);
                             npc.spawnToAll();
-                       // } catch (Exception e) {
+                        }
+                        // } catch (Exception e) {
                         /*
                             System.out.println("Spawn Wrong！");
                             System.out.println("MobFile"+mobfile);
